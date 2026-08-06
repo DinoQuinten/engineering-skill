@@ -68,9 +68,23 @@ echo '{"hook_event_name":"SessionStart"}' \
 
 Expected: exit 0, one JSON object, both skill bodies under an `ALWAYS-ACTIVE SKILLS` preamble. The hook echoes back whatever `hook_event_name` it receives, and emits nothing at all if `skills/` is unreadable.
 
-## Conflicts with an existing setup
+Empty output instead? You already have those skills in `~/.claude/skills/` — see above. Re-run with `DISCIPLINE_FORCE_INJECT=1` to confirm.
 
-If you already inject these skills from `~/.claude/settings.json` (e.g. a personal `always-active-skills.py` on SessionStart/PostCompact), remove those hook entries before installing — otherwise both fire and the skills land in context twice.
+## If you already have these skills locally
+
+The plugin defers to you. A skill is **skipped** when `~/.claude/skills/<name>/SKILL.md` exists — your copy owns it, and whatever hook you already use to inject it keeps working. Nothing in your config needs to change, and the plugin never reads or writes your `settings.json`.
+
+| Your `~/.claude/skills/` | Plugin injects |
+|---|---|
+| Neither skill | both |
+| `response-discipline` only | `engineering-discipline` only |
+| Both | nothing (hook emits no output) |
+
+Override with `DISCIPLINE_FORCE_INJECT=1` to inject regardless — useful if you keep the local skill directory but removed the hook that injected it.
+
+`CLAUDE_CONFIG_DIR` is honoured if you've relocated `~/.claude`.
+
+Note: plugin skills are namespaced (`discipline:response-discipline`), so a local skill of the same name is a duplicate listing, not a name conflict.
 
 ## License
 

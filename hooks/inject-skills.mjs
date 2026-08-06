@@ -12,12 +12,20 @@
  * Skills are discovered by listing skills/, so adding skills/<name>/SKILL.md is
  * the only step needed to include a new one — this file never changes.
  *
+ * A skill is SKIPPED when the same name already exists under the user's own
+ * ~/.claude/skills/. That local copy takes precedence: the user may already
+ * inject it from their own hook, and two skills sharing a name collide in the
+ * skill registry regardless. The plugin never reads or writes the user's
+ * settings.json to work this out — it only checks whether the directory exists.
+ * Set DISCIPLINE_FORCE_INJECT=1 to inject regardless.
+ *
  * Fails silently (exit 0, no output) if the skills directory is missing, so a
  * broken plugin checkout never breaks session startup.
  */
 
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
+import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 const PREAMBLE =
@@ -48,6 +56,15 @@ function hookEventName() {
   }
 }
 
+// Honours CLAUDE_CONFIG_DIR for users who relocate ~/.claude.
+const userSkillsDir = join(process.env.CLAUDE_CONFIG_DIR || join(homedir(), '.claude'), 'skills');
+
+/** True when the user has their own copy of this skill, which then owns it. */
+function ownedByUser(name) {
+  if (process.env.DISCIPLINE_FORCE_INJECT === '1') return false;
+  return existsSync(join(userSkillsDir, name, 'SKILL.md'));
+}
+
 function collectSkills() {
   const skillsDir = join(pluginRoot, 'skills');
   const names = readdirSync(skillsDir, { withFileTypes: true })
@@ -57,6 +74,7 @@ function collectSkills() {
 
   const bodies = [];
   for (const name of names) {
+    if (ownedByUser(name)) continue;
     try {
       bodies.push(readFileSync(join(skillsDir, name, 'SKILL.md'), 'utf8'));
     } catch {
