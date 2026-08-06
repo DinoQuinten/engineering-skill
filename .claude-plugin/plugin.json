@@ -1,0 +1,17 @@
+{
+  "name": "discipline",
+  "description": "Always-active response and engineering discipline: no filler or hedging, RCA-formatted problem reports, docs-first implementation, root-cause fixes, behavior-level tests, and executed verification.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Mahendra",
+    "email": "mahendra@botpresso.com"
+  },
+  "keywords": [
+    "skills",
+    "engineering",
+    "code-quality",
+    "communication",
+    "rca"
+  ],
+  "hooks": "./hooks/hooks.json"
+}

@@ -1,0 +1,11 @@
+# Packaged .skill bundles — skills/ is the source of truth
+*.skill
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+node_modules/

@@ -1,0 +1,14 @@
+{
+  "name": "botpresso",
+  "owner": {
+    "name": "Mahendra",
+    "email": "mahendra@botpresso.com"
+  },
+  "plugins": [
+    {
+      "name": "discipline",
+      "source": "./",
+      "description": "Always-active response and engineering discipline skills for Claude Code."
+    }
+  ]
+}
