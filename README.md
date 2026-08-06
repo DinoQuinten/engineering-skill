@@ -51,7 +51,7 @@ Directories are injected in sorted order. A directory with no `SKILL.md` is skip
 
 ## Making them on-demand instead
 
-Delete `hooks/` and the `"hooks"` key from `.claude-plugin/plugin.json`. Claude Code still auto-discovers `skills/` and loads each one when its `description` matches the task — lower baseline context cost, but no guarantee it fires on a given response.
+Delete `hooks/`. Claude Code still auto-discovers `skills/` and loads each one when its `description` matches the task — lower baseline context cost, but no guarantee it fires on a given response.
 
 ## Requirements
 

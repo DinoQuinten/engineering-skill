@@ -1,5 +1,6 @@
 {
   "name": "botpresso",
+  "description": "Behavioral discipline plugins for Claude Code - communication and engineering standards that stay active for the whole session.",
   "owner": {
     "name": "DinoQuinten",
     "email": "77713617+DinoQuinten@users.noreply.github.com"
