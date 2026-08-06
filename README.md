@@ -14,7 +14,7 @@ Both are injected at session start rather than loaded on demand, so they apply t
 ## Install
 
 ```
-/plugin marketplace add <your-github-user>/<this-repo>
+/plugin marketplace add DinoQuinten/engineering-skill
 /plugin install discipline@botpresso
 ```
 
