@@ -15,7 +15,7 @@ Both are injected at session start rather than loaded on demand, so they apply t
 
 ```
 /plugin marketplace add DinoQuinten/engineering-skill
-/plugin install discipline@botpresso
+/plugin install discipline@dinoquinten
 ```
 
 Restart the session. Verify with `/context` — the skills appear as SessionStart hook context.
@@ -24,7 +24,7 @@ Local checkout instead:
 
 ```
 /plugin marketplace add /absolute/path/to/this/repo
-/plugin install discipline@botpresso
+/plugin install discipline@dinoquinten
 ```
 
 ## Layout
