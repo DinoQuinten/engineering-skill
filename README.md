@@ -9,7 +9,7 @@ A Claude Code plugin that keeps two behavioral skills active in every session: h
 | `response-discipline` | No filler openers, no hedging, no text walls. Verify before concluding. RCA format for every error or failure. Relevance-scoped answers. |
 | `engineering-discipline` | Docs-first over training memory (with a `docs-used.md` ledger). YAGNI ladder before writing code. Root-cause fixes, never symptom patches. Behavior-level tests. Executed verification, never claimed. |
 
-Both are injected at session start rather than loaded on demand, so they apply to every response — including the first one, before Claude has decided whether a skill is "relevant".
+Both are injected at session start rather than loaded on demand, so they apply to every response — including the first one, before Claude has decided whether a skill is "relevant". They are re-injected after compaction, which would otherwise drop them.
 
 ## Install
 
@@ -35,7 +35,7 @@ Local checkout instead:
 │   ├── plugin.json          # plugin manifest
 │   └── marketplace.json     # makes this repo installable as a marketplace
 ├── hooks/
-│   ├── hooks.json           # registers the SessionStart hook
+│   ├── hooks.json           # registers SessionStart + PostCompact
 │   └── inject-skills.mjs    # reads skills/*/SKILL.md → additionalContext
 └── skills/
     ├── engineering-discipline/SKILL.md
@@ -61,10 +61,16 @@ Delete `hooks/` and the `"hooks"` key from `.claude-plugin/plugin.json`. Claude 
 ## Testing the hook
 
 ```bash
-CLAUDE_PLUGIN_ROOT="$PWD" node hooks/inject-skills.mjs | jq -r '.hookSpecificOutput.additionalContext' | head -20
+echo '{"hook_event_name":"SessionStart"}' \
+  | CLAUDE_PLUGIN_ROOT="$PWD" node hooks/inject-skills.mjs \
+  | jq -r '.hookSpecificOutput.additionalContext' | head -20
 ```
 
-Expected: exit 0, one JSON object, both skill bodies under an `ALWAYS-ACTIVE SKILLS` preamble.
+Expected: exit 0, one JSON object, both skill bodies under an `ALWAYS-ACTIVE SKILLS` preamble. The hook echoes back whatever `hook_event_name` it receives, and emits nothing at all if `skills/` is unreadable.
+
+## Conflicts with an existing setup
+
+If you already inject these skills from `~/.claude/settings.json` (e.g. a personal `always-active-skills.py` on SessionStart/PostCompact), remove those hook entries before installing — otherwise both fire and the skills land in context twice.
 
 ## License
 

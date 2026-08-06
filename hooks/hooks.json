@@ -5,7 +5,19 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/inject-skills.mjs\""
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/inject-skills.mjs\"",
+            "statusMessage": "Loading always-active skills..."
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/inject-skills.mjs\"",
+            "statusMessage": "Reloading always-active skills..."
           }
         ]
       }
