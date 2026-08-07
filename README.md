@@ -45,8 +45,8 @@ Local checkout instead:
 │   ├── plugin.json          # plugin manifest
 │   └── marketplace.json     # makes this repo installable as a marketplace
 ├── hooks/
-│   ├── hooks.json           # registers SessionStart + SubagentStart
-│   └── inject-skills.mjs    # reads skills/*/SKILL.md → additionalContext
+│   ├── hooks.json           # one command per skill, on SessionStart + SubagentStart
+│   └── inject-skills.mjs    # reads skills/<name>/SKILL.md → additionalContext
 └── skills/
     ├── engineering-discipline/SKILL.md
     └── response-discipline/SKILL.md
@@ -55,9 +55,31 @@ Local checkout instead:
 ## Adding a skill
 
 1. Create `skills/<name>/SKILL.md` with `name` and `description` frontmatter.
-2. Done. `inject-skills.mjs` discovers skill directories by listing `skills/`, so no hook or manifest edit is needed.
+2. Add one command per event in `hooks/hooks.json`:
 
-Directories are injected in sorted order. A directory with no `SKILL.md` is skipped.
+```json
+{
+  "type": "command",
+  "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/inject-skills.mjs\" --only <name>",
+  "statusMessage": "Loading <name>..."
+}
+```
+
+Keep each `SKILL.md` under ~8 KB. A directory with no readable `SKILL.md` is skipped, and an unknown `--only` name emits nothing and exits 0.
+
+### Why one command per skill
+
+Claude Code writes oversized hook context to a file and shows the model a ~2 KB preview instead of the text. Measured on this plugin:
+
+| Payload | Delivered |
+|---|---|
+| Both skills in one block — 13.6 KB | Truncated to a ~2 KB preview; the rest was file-backed and never in context |
+| `engineering-discipline` alone — 8.3 KB | Full, inline |
+| `response-discipline` alone — 5.6 KB | Full, inline |
+
+Verified by asking tool-less subagents to quote headings from the end of each skill body. At 13.6 KB they could not see `## Decision reports` or `## DRY`; split, they could. The threshold sits between 8.4 KB and 13.6 KB.
+
+Running `inject-skills.mjs` with no `--only` still emits every skill as one block. That path exists for direct testing and is subject to the truncation above.
 
 ## Making them on-demand instead
 
@@ -72,11 +94,11 @@ Delete `hooks/`. Claude Code still auto-discovers `skills/` and loads each one w
 
 ```bash
 echo '{"hook_event_name":"SessionStart"}' \
-  | CLAUDE_PLUGIN_ROOT="$PWD" node hooks/inject-skills.mjs \
+  | CLAUDE_PLUGIN_ROOT="$PWD" node hooks/inject-skills.mjs --only response-discipline \
   | jq -r '.hookSpecificOutput.additionalContext' | head -20
 ```
 
-Expected: exit 0, one JSON object, both skill bodies under an `ALWAYS-ACTIVE SKILLS` preamble. The hook echoes back whatever `hook_event_name` it receives, and emits nothing at all if `skills/` is unreadable.
+Expected: exit 0, one JSON object, that one skill body under an `ALWAYS-ACTIVE SKILLS` preamble. The hook echoes back whatever `hook_event_name` it receives, and emits nothing at all if `skills/` is unreadable.
 
 Empty output instead? You already have those skills in `~/.claude/skills/` — see above. Re-run with `DISCIPLINE_FORCE_INJECT=1` to confirm.
 

@@ -12,8 +12,15 @@
  * schema. SubagentStart covers spawned agents, which do not inherit the main
  * session's injected context.
  *
- * Skills are discovered by listing skills/, so adding skills/<name>/SKILL.md is
- * the only step needed to include a new one — this file never changes.
+ * ONE SKILL PER INVOCATION. `--only <name>` emits just that skill, and hooks.json
+ * registers one command per skill. Concatenating them into a single block was
+ * measured at 13.6 KB, over the limit at which Claude Code writes the context to
+ * a file and shows the model only a ~2 KB preview — everything past the cut was
+ * silently unavailable. Injected individually (5.6 KB and 8.3 KB) both arrive
+ * inline in full. Keep any single SKILL.md comfortably under ~8 KB.
+ *
+ * With no `--only`, every skill is emitted as one block. That is the direct-test
+ * path; it is subject to the truncation above and is not what hooks.json uses.
  *
  * A skill is SKIPPED when the same name already exists under the user's own
  * ~/.claude/skills/. That local copy takes precedence: the user may already
@@ -68,11 +75,19 @@ function ownedByUser(name) {
   return existsSync(join(userSkillsDir, name, 'SKILL.md'));
 }
 
+/** `--only <name>` restricts output to that single skill. */
+function requestedSkill() {
+  const i = process.argv.indexOf('--only');
+  return i !== -1 ? process.argv[i + 1] : null;
+}
+
 function collectSkills() {
   const skillsDir = join(pluginRoot, 'skills');
+  const only = requestedSkill();
   const names = readdirSync(skillsDir, { withFileTypes: true })
     .filter((e) => e.isDirectory())
     .map((e) => e.name)
+    .filter((name) => only === null || name === only)
     .sort();
 
   const bodies = [];

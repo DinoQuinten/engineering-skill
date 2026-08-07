@@ -1,7 +1,7 @@
 {
   "name": "discipline",
   "description": "Always-active response and engineering discipline: no filler or hedging, RCA-formatted problem reports, docs-first implementation, root-cause fixes, behavior-level tests, and executed verification.",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "author": {
     "name": "DinoQuinten",
     "email": "77713617+DinoQuinten@users.noreply.github.com"

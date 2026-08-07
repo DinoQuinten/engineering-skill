@@ -6,8 +6,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/inject-skills.mjs\"",
-            "statusMessage": "Loading always-active skills..."
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/inject-skills.mjs\" --only response-discipline",
+            "statusMessage": "Loading response-discipline..."
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/inject-skills.mjs\" --only engineering-discipline",
+            "statusMessage": "Loading engineering-discipline..."
           }
         ]
       }
@@ -17,8 +22,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/inject-skills.mjs\"",
-            "statusMessage": "Loading always-active skills for subagent..."
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/inject-skills.mjs\" --only response-discipline",
+            "statusMessage": "Loading response-discipline for subagent..."
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/inject-skills.mjs\" --only engineering-discipline",
+            "statusMessage": "Loading engineering-discipline for subagent..."
           }
         ]
       }
