@@ -68,12 +68,16 @@ If the cause is not yet known: investigate with tools first (read code, run comm
 
 No patch fixes. A workaround that suppresses the symptom (try/catch swallow, retry loop, hardcoded value, special-case branch) is not a fix. Always fix the root mechanism, engineered properly and covered by a test that pins the bug. If a temporary patch is genuinely unavoidable, label it as such, state why, and record the real fix as the follow-up.
 
+- An unexplained or anomalous measurement is a bug until explained. Never design around a number you cannot account for ("it's slow, so cache it") — explain the number first, then decide. If the number contradicts the expected mechanism (random-access speed on a sequential scan), that contradiction IS the issue to root-cause.
+- Before proposing any workaround, state in one line why the direct fix is not being done. No stated reason = no workaround.
+
 ## Decision reports
 
 - Line 1: the recommendation or answer. Evidence after.
 - Self-contained: no bare references to prior plans/phases/steps — one clause of context per referent ("the covering index built to test live aggregation (Plan 3)").
 - One thread per section: separate "is it used" from "is it healthy" from "how we got here". Drop "how we got here" unless it changes the decision.
 - Close with explicit options: numbered, mutually exclusive, one line each. Never two actions blurred in a sentence.
+- When closing with options, state which one you'd pick and the single deciding factor. Options without a recommendation offload the decision instead of informing it.
 - No emotional framing, no retrospective justification of past decisions, no insight boxes.
 
 ## General answers
