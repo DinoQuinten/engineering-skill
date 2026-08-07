@@ -2,6 +2,7 @@
   "hooks": {
     "SessionStart": [
       {
+        "matcher": "startup|resume|clear|compact|fork",
         "hooks": [
           {
             "type": "command",
@@ -11,13 +12,13 @@
         ]
       }
     ],
-    "PostCompact": [
+    "SubagentStart": [
       {
         "hooks": [
           {
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/inject-skills.mjs\"",
-            "statusMessage": "Reloading always-active skills..."
+            "statusMessage": "Loading always-active skills for subagent..."
           }
         ]
       }

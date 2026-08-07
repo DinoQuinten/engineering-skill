@@ -9,7 +9,17 @@ A Claude Code plugin that keeps two behavioral skills active in every session: h
 | `response-discipline` | No filler openers, no hedging, no text walls. Verify before concluding. RCA format for every error or failure. Relevance-scoped answers. |
 | `engineering-discipline` | Docs-first over training memory (with a `docs-used.md` ledger). YAGNI ladder before writing code. Root-cause fixes, never symptom patches. Behavior-level tests. Executed verification, never claimed. |
 
-Both are injected at session start rather than loaded on demand, so they apply to every response — including the first one, before Claude has decided whether a skill is "relevant". They are re-injected after compaction, which would otherwise drop them.
+Both are injected at session start rather than loaded on demand, so they apply to every response — including the first one, before Claude has decided whether a skill is "relevant".
+
+Coverage is three hooks' worth:
+
+| Moment | Hook | Why |
+|---|---|---|
+| New / resumed / cleared / forked session | `SessionStart` | In context before the first token |
+| After a compaction | `SessionStart` (`compact` source) | Compaction drops injected context |
+| Every subagent | `SubagentStart` | Subagents do not inherit the parent's injected context |
+
+`PostCompact` is deliberately **not** used: it rejects `additionalContext` in its output schema, so a hook registered there fails validation instead of injecting. The `compact` source on `SessionStart` is the working path.
 
 ## Install
 
@@ -35,7 +45,7 @@ Local checkout instead:
 │   ├── plugin.json          # plugin manifest
 │   └── marketplace.json     # makes this repo installable as a marketplace
 ├── hooks/
-│   ├── hooks.json           # registers SessionStart + PostCompact
+│   ├── hooks.json           # registers SessionStart + SubagentStart
 │   └── inject-skills.mjs    # reads skills/*/SKILL.md → additionalContext
 └── skills/
     ├── engineering-discipline/SKILL.md

@@ -6,8 +6,11 @@
  * communication/engineering standards that must apply to every response, so
  * their full text is pushed into context instead of relying on invocation.
  *
- * Registered on SessionStart and PostCompact — compaction drops injected
- * context, so it has to be re-emitted afterwards.
+ * Registered on SessionStart and SubagentStart. SessionStart's matcher includes
+ * `compact`, which is what re-injects after a compaction drops the context —
+ * PostCompact cannot do this, as it rejects `additionalContext` in its output
+ * schema. SubagentStart covers spawned agents, which do not inherit the main
+ * session's injected context.
  *
  * Skills are discovered by listing skills/, so adding skills/<name>/SKILL.md is
  * the only step needed to include a new one — this file never changes.

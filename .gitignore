@@ -12,3 +12,6 @@ node_modules/
 
 # Local plugin enable-state written by `claude plugin install`
 .claude/settings.json
+
+# Marketing drafts — not part of the plugin
+socia-media/
