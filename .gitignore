@@ -1,4 +1,4 @@
-# Packaged .skill bundles — skills/ is the source of truth
+# Generated .skill bundles — skills/ is the cross-platform source of truth
 *.skill
 
 # OS / editor cruft
@@ -10,7 +10,7 @@ Thumbs.db
 
 node_modules/
 
-# Local plugin enable-state written by `claude plugin install`
+# Local Claude Code plugin enable-state written by `claude plugin install`
 .claude/settings.json
 
 # Marketing drafts — not part of the plugin

@@ -1,0 +1,20 @@
+{
+  "name": "dinoquinten",
+  "interface": {
+    "displayName": "DinoQuinten"
+  },
+  "plugins": [
+    {
+      "name": "discipline",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

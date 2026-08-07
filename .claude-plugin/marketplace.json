@@ -1,6 +1,6 @@
 {
   "name": "dinoquinten",
-  "description": "Behavioral discipline plugins for Claude Code - communication and engineering standards that stay active for the whole session.",
+  "description": "Behavioral discipline plugins for Claude Code and Codex - communication and engineering standards that stay active for the whole session.",
   "owner": {
     "name": "DinoQuinten",
     "email": "77713617+DinoQuinten@users.noreply.github.com"
@@ -9,7 +9,7 @@
     {
       "name": "discipline",
       "source": "./",
-      "description": "Always-active response and engineering discipline skills for Claude Code."
+      "description": "Always-active response and engineering discipline skills for Claude Code and Codex."
     }
   ]
 }

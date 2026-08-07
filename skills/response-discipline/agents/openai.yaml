@@ -1,0 +1,7 @@
+interface:
+  display_name: "Response Discipline"
+  short_description: "Direct, verified, RCA-structured responses"
+  default_prompt: "Use $response-discipline to answer directly, verify claims, and structure failures as an RCA."
+
+policy:
+  allow_implicit_invocation: true

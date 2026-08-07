@@ -2,7 +2,7 @@
 /**
  * Injects every SKILL.md under the plugin's skills/ directory into context.
  *
- * Skills normally load only when Claude chooses to invoke them. These are
+ * Skills normally load only when the host chooses to invoke them. These are
  * communication/engineering standards that must apply to every response, so
  * their full text is pushed into context instead of relying on invocation.
  *
@@ -16,18 +16,18 @@
  * registers one command per skill. Concatenating them into a single block was
  * measured at 13.6 KB, over the limit at which Claude Code writes the context to
  * a file and shows the model only a ~2 KB preview — everything past the cut was
- * silently unavailable. Injected individually (5.6 KB and 8.3 KB) both arrive
- * inline in full. Keep any single SKILL.md comfortably under ~8 KB.
+ * silently unavailable. Injected individually, both arrive inline in full on
+ * Claude Code and stay below Codex's default per-hook context threshold. Keep
+ * any single SKILL.md below 9 KB and verify context delivery after it changes.
  *
  * With no `--only`, every skill is emitted as one block. That is the direct-test
  * path; it is subject to the truncation above and is not what hooks.json uses.
  *
  * A skill is SKIPPED when the same name already exists under the user's own
- * ~/.claude/skills/. That local copy takes precedence: the user may already
- * inject it from their own hook, and two skills sharing a name collide in the
- * skill registry regardless. The plugin never reads or writes the user's
- * settings.json to work this out — it only checks whether the directory exists.
- * Set DISCIPLINE_FORCE_INJECT=1 to inject regardless.
+ * host's personal skill directory. Codex uses ~/.agents/skills; Claude Code
+ * uses ${CLAUDE_CONFIG_DIR:-~/.claude}/skills. The local copy takes precedence:
+ * the user may already inject it from their own hook. The plugin never reads or
+ * writes user configuration. Set DISCIPLINE_FORCE_INJECT=1 to inject regardless.
  *
  * Fails silently (exit 0, no output) if the skills directory is missing, so a
  * broken plugin checkout never breaks session startup.
@@ -41,14 +41,19 @@ import { fileURLToPath } from 'node:url';
 const PREAMBLE =
   'ALWAYS-ACTIVE SKILLS\n' +
   'The skills below are in force for this entire session. Apply them to every ' +
-  'response and every task. Do not call the Skill tool for them - their full ' +
-  'content is already here. They override default response and engineering ' +
+  'response and every task. Do not invoke them again - their full content is ' +
+  'already here. They override default response and engineering ' +
   'behavior; explicit user instructions still win.\n';
 
-// CLAUDE_PLUGIN_ROOT is set by Claude Code for plugin hooks; fall back to this
-// file's parent so the script also works when run directly for testing.
+// docs-used.md#D2 — Codex sets PLUGIN_ROOT and also exposes CLAUDE_PLUGIN_ROOT as a compatibility
+// alias. Prefer the native variable so it also identifies the active host.
+// Claude Code sets CLAUDE_PLUGIN_ROOT. The file-relative fallback supports
+// direct tests on either platform.
+const isCodex = Boolean(process.env.PLUGIN_ROOT);
 const pluginRoot =
-  process.env.CLAUDE_PLUGIN_ROOT || dirname(dirname(fileURLToPath(import.meta.url)));
+  process.env.PLUGIN_ROOT ||
+  process.env.CLAUDE_PLUGIN_ROOT ||
+  dirname(dirname(fileURLToPath(import.meta.url)));
 
 function readStdin() {
   try {
@@ -66,8 +71,10 @@ function hookEventName() {
   }
 }
 
-// Honours CLAUDE_CONFIG_DIR for users who relocate ~/.claude.
-const userSkillsDir = join(process.env.CLAUDE_CONFIG_DIR || join(homedir(), '.claude'), 'skills');
+const userSkillsDir = isCodex
+  // docs-used.md#D1 — Codex personal skills live under ~/.agents/skills.
+  ? join(homedir(), '.agents', 'skills')
+  : join(process.env.CLAUDE_CONFIG_DIR || join(homedir(), '.claude'), 'skills');
 
 /** True when the user has their own copy of this skill, which then owns it. */
 function ownedByUser(name) {
@@ -112,6 +119,7 @@ try {
 }
 
 if (bodies.length > 0) {
+  // docs-used.md#D3 and #D6 — both hosts accept this additionalContext shape.
   process.stdout.write(
     JSON.stringify({
       hookSpecificOutput: {

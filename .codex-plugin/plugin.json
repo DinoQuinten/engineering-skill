@@ -1,0 +1,34 @@
+{
+  "name": "discipline",
+  "version": "1.4.0",
+  "description": "Always-active response and engineering discipline for Codex and Claude Code: evidence-first answers, RCA reports, docs-first implementation, root-cause fixes, behavior-level tests, and executed verification.",
+  "author": {
+    "name": "DinoQuinten",
+    "email": "77713617+DinoQuinten@users.noreply.github.com",
+    "url": "https://github.com/DinoQuinten"
+  },
+  "homepage": "https://github.com/DinoQuinten/engineering-skill",
+  "repository": "https://github.com/DinoQuinten/engineering-skill",
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "engineering",
+    "code-quality",
+    "communication",
+    "rca"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Discipline",
+    "shortDescription": "Evidence-first engineering and responses",
+    "longDescription": "Keep response and engineering discipline active across sessions, compaction, and subagents in Codex and Claude Code.",
+    "developerName": "DinoQuinten",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive"
+    ],
+    "defaultPrompt": [
+      "Apply disciplined engineering and response standards to this task."
+    ]
+  }
+}

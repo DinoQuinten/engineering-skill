@@ -1,0 +1,7 @@
+interface:
+  display_name: "Engineering Discipline"
+  short_description: "Evidence-driven engineering and verification"
+  default_prompt: "Use $engineering-discipline to apply rigorous engineering practices to this task."
+
+policy:
+  allow_implicit_invocation: true

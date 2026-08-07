@@ -1,61 +1,150 @@
 # discipline
 
-A Claude Code plugin that keeps two behavioral skills active in every session: how Claude **responds**, and how Claude **engineers**.
+An always-active engineering and communication discipline plugin for **Codex** and **Claude Code**.
 
-## What it does
+The repository keeps one shared implementation for both hosts: two Agent Skills plus lifecycle hooks that load them before the first response, after compaction, and in every subagent.
 
-| Skill | Enforces |
+## What it enforces
+
+| Skill | Workflow |
 |---|---|
-| `response-discipline` | No filler openers, no hedging, no text walls. Verify before concluding. RCA format for every error or failure. Relevance-scoped answers. |
-| `engineering-discipline` | Docs-first over training memory (with a `docs-used.md` ledger). YAGNI ladder before writing code. Root-cause fixes, never symptom patches. Behavior-level tests. Executed verification, never claimed. |
+| `response-discipline` | Direct answers, no filler or unsupported agreement, evidence before conclusions, concise structure, and RCA-formatted failure reports. |
+| `engineering-discipline` | Official-docs-first implementation, a `docs-used.md` ledger, the YAGNI ladder, root-cause fixes, behavior-level tests, blast-radius checks, and executed verification. |
 
-Both are injected at session start rather than loaded on demand, so they apply to every response — including the first one, before Claude has decided whether a skill is "relevant".
+Both skills remain separate so each hook payload stays inline instead of spilling to a file-backed preview.
 
-Coverage is three hooks' worth:
+## Install in Codex
 
-| Moment | Hook | Why |
-|---|---|---|
-| New / resumed / cleared / forked session | `SessionStart` | In context before the first token |
-| After a compaction | `SessionStart` (`compact` source) | Compaction drops injected context |
-| Every subagent | `SubagentStart` | Subagents do not inherit the parent's injected context |
+### From GitHub
 
-`PostCompact` is deliberately **not** used: it rejects `additionalContext` in its output schema, so a hook registered there fails validation instead of injecting. The `compact` source on `SessionStart` is the working path.
-
-## Install
-
+```text
+codex plugin marketplace add DinoQuinten/engineering-skill
+codex plugin add discipline@dinoquinten
 ```
+
+Start a new Codex session after installation. Open `/hooks`, review the two plugin hook definitions, and trust them. Codex skips non-managed plugin hooks until their current definitions are trusted.
+
+### From a local checkout
+
+```text
+codex plugin marketplace add /absolute/path/to/engineering-skill
+codex plugin add discipline@dinoquinten
+```
+
+Codex manages installed copies under:
+
+```text
+~/.codex/plugins/cache/dinoquinten/discipline/
+```
+
+Do not edit the cache. Edit the checkout, refresh or reinstall the marketplace plugin, then start a new session.
+
+Codex also discovers standalone personal skills under `~/.agents/skills/<skill-name>/SKILL.md`, but standalone installation does not include this plugin's always-active hooks.
+
+## Install in Claude Code
+
+### From GitHub
+
+```text
 /plugin marketplace add DinoQuinten/engineering-skill
 /plugin install discipline@dinoquinten
 ```
 
-Restart the session. Verify with `/context` — the skills appear as SessionStart hook context.
+Restart the session. Use `/context` to confirm that both skills appear in `SessionStart` hook context.
 
-Local checkout instead:
+### From a local checkout
 
-```
-/plugin marketplace add /absolute/path/to/this/repo
+```text
+/plugin marketplace add /absolute/path/to/engineering-skill
 /plugin install discipline@dinoquinten
 ```
 
+Claude Code continues to use `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`. Those files are intentional compatibility metadata, not leftovers.
+
+Claude Code manages installed copies under:
+
+```text
+~/.claude/plugins/cache/dinoquinten/discipline/
+```
+
+Edit the checkout rather than the cache, then update or reinstall the plugin and restart the session.
+
+## Use
+
+Installation activates both skills automatically. Normal prompts need no prefix:
+
+```text
+Fix the failed sync and verify the behavior through its public API.
+```
+
+Expected workflow:
+
+1. Inspect evidence before agreeing with a premise.
+2. Read current official documentation before relying on external APIs or configuration formats.
+3. Find and fix the root mechanism.
+4. Add behavior-level regression coverage.
+5. Run verification and report its actual output.
+6. Format failures as Issue → Root cause → Fix → Verification.
+
+Codex users can also invoke a skill explicitly:
+
+```text
+$engineering-discipline review this migration plan
+$response-discipline rewrite this incident report
+```
+
+Codex invocation remains enabled in each skill's `agents/openai.yaml`. This keeps `$skill-name` invocation and normal skill discovery available when plugin hooks have not been trusted yet. Once hooks inject the full text, their preamble tells the model not to invoke the same skills again.
+
+## Lifecycle coverage
+
+| Moment | Hook | Purpose |
+|---|---|---|
+| New, resumed, or cleared session | `SessionStart` | Apply both skills before the first response. |
+| After compaction | `SessionStart` with `compact` source | Restore instructions removed from active context. |
+| Every subagent | `SubagentStart` | Apply the same standards inside isolated agent contexts. |
+
+`PostCompact` is not used for instruction injection. Both hosts provide the supported compact-recovery path through `SessionStart` with a `compact` source.
+
 ## Layout
 
-```
+```text
 .
+├── .agents/plugins/marketplace.json       # Codex repository marketplace
 ├── .claude-plugin/
-│   ├── plugin.json          # plugin manifest
-│   └── marketplace.json     # makes this repo installable as a marketplace
+│   ├── marketplace.json                   # Claude Code marketplace
+│   └── plugin.json                        # Claude Code manifest
+├── .codex-plugin/plugin.json              # Codex manifest
 ├── hooks/
-│   ├── hooks.json           # one command per skill, on SessionStart + SubagentStart
-│   └── inject-skills.mjs    # reads skills/<name>/SKILL.md → additionalContext
-└── skills/
-    ├── engineering-discipline/SKILL.md
-    └── response-discipline/SKILL.md
+│   ├── hooks.json                         # Shared lifecycle registration
+│   └── inject-skills.mjs                  # Shared dual-host injector
+├── skills/
+│   ├── engineering-discipline/
+│   │   ├── agents/openai.yaml             # Codex UI/invocation metadata
+│   │   └── SKILL.md                       # Shared skill instructions
+│   └── response-discipline/
+│       ├── agents/openai.yaml
+│       └── SKILL.md
+└── test/inject-skills.test.mjs            # Cross-host hook tests
 ```
 
-## Adding a skill
+## Cross-platform hook behavior
+
+The hook uses the native root supplied by each host:
+
+| Host | Plugin root | Personal skill ownership |
+|---|---|---|
+| Codex | `PLUGIN_ROOT` | `~/.agents/skills/<name>/SKILL.md` |
+| Claude Code | `CLAUDE_PLUGIN_ROOT` | `${CLAUDE_CONFIG_DIR:-~/.claude}/skills/<name>/SKILL.md` |
+
+Codex also supplies `CLAUDE_PLUGIN_ROOT` as a documented compatibility alias. `hooks/hooks.json` uses that alias so the same command works in both hosts; the injector prefers native `PLUGIN_ROOT` when Codex runs it.
+
+If a matching personal skill exists, the plugin skips its copy. The personal copy owns its activation behavior. Set `DISCIPLINE_FORCE_INJECT=1` to force the plugin copy during testing.
+
+## Add another shared skill
 
 1. Create `skills/<name>/SKILL.md` with `name` and `description` frontmatter.
-2. Add one command per event in `hooks/hooks.json`:
+2. Add `skills/<name>/agents/openai.yaml` for Codex presentation and invocation policy.
+3. Add one command for the skill under both events in `hooks/hooks.json`:
 
 ```json
 {
@@ -65,58 +154,47 @@ Local checkout instead:
 }
 ```
 
-Keep each `SKILL.md` under ~8 KB. A directory with no readable `SKILL.md` is skipped, and an unknown `--only` name emits nothing and exits 0.
+4. Keep the individual skill below 9 KB or explicitly test host context-spill behavior.
+5. Add hook tests before changing the injector.
 
-### Why one command per skill
+## Test
 
-Claude Code writes oversized hook context to a file and shows the model a ~2 KB preview instead of the text. Measured on this plugin:
+Run the deterministic hook suite:
 
-| Payload | Delivered |
-|---|---|
-| Both skills in one block — 13.6 KB | Truncated to a ~2 KB preview; the rest was file-backed and never in context |
-| `engineering-discipline` alone — 8.3 KB | Full, inline |
-| `response-discipline` alone — 5.6 KB | Full, inline |
+```text
+node --test test/inject-skills.test.mjs
+```
 
-Verified by asking tool-less subagents to quote headings from the end of each skill body. At 13.6 KB they could not see `## Decision reports` or `## DRY`; split, they could. The threshold sits between 8.4 KB and 13.6 KB.
+PowerShell smoke test for Codex:
 
-Running `inject-skills.mjs` with no `--only` still emits every skill as one block. That path exists for direct testing and is subject to the truncation above.
+```powershell
+$env:PLUGIN_ROOT = (Get-Location).Path
+'{"hook_event_name":"SessionStart","source":"startup"}' |
+  node hooks/inject-skills.mjs --only response-discipline
+```
 
-## Making them on-demand instead
+POSIX smoke test for Claude Code:
 
-Delete `hooks/`. Claude Code still auto-discovers `skills/` and loads each one when its `description` matches the task — lower baseline context cost, but no guarantee it fires on a given response.
+```bash
+echo '{"hook_event_name":"SessionStart","source":"startup"}' \
+  | CLAUDE_PLUGIN_ROOT="$PWD" node hooks/inject-skills.mjs --only response-discipline
+```
+
+Expected output is one JSON object whose `hookSpecificOutput.additionalContext` contains only the requested skill. An unknown `--only` name or unreadable `skills/` directory produces no output and exits zero.
+
+## Limitations
+
+- Always-active injection consumes the complete text of both skills in every root session and subagent.
+- Codex requires users to review and trust non-managed plugin hooks after installation or hook changes.
+- Codex-specific `agents/openai.yaml` metadata has no effect in Claude Code.
+- Claude Code's `.claude-plugin/` metadata has no effect on native Codex packaging, although Codex retains legacy marketplace compatibility.
+- A personal skill with the same name suppresses plugin injection only for its matching host; the user must provide any desired always-active mechanism for that personal copy.
+- Generated `.skill` archives are ignored snapshots. `skills/` is the source of truth for both hosts.
 
 ## Requirements
 
-- Claude Code with plugin support
-- `node` on `PATH` (used by the SessionStart hook)
-
-## Testing the hook
-
-```bash
-echo '{"hook_event_name":"SessionStart"}' \
-  | CLAUDE_PLUGIN_ROOT="$PWD" node hooks/inject-skills.mjs --only response-discipline \
-  | jq -r '.hookSpecificOutput.additionalContext' | head -20
-```
-
-Expected: exit 0, one JSON object, that one skill body under an `ALWAYS-ACTIVE SKILLS` preamble. The hook echoes back whatever `hook_event_name` it receives, and emits nothing at all if `skills/` is unreadable.
-
-Empty output instead? You already have those skills in `~/.claude/skills/` — see above. Re-run with `DISCIPLINE_FORCE_INJECT=1` to confirm.
-
-## If you already have these skills locally
-
-The plugin defers to you. A skill is **skipped** when `~/.claude/skills/<name>/SKILL.md` exists — your copy owns it, and whatever hook you already use to inject it keeps working. Nothing in your config needs to change, and the plugin never reads or writes your `settings.json`.
-
-| Your `~/.claude/skills/` | Plugin injects |
-|---|---|
-| Neither skill | both |
-| `response-discipline` only | `engineering-discipline` only |
-| Both | nothing (hook emits no output) |
-
-Override with `DISCIPLINE_FORCE_INJECT=1` to inject regardless — useful if you keep the local skill directory but removed the hook that injected it.
-
-`CLAUDE_CONFIG_DIR` is honoured if you've relocated `~/.claude`.
-
-Note: plugin skills are namespaced (`discipline:response-discipline`), so a local skill of the same name is a duplicate listing, not a name conflict.
+- Codex with plugin and hook support, or Claude Code with plugin support.
+- Node.js on `PATH` for lifecycle injection and tests.
 
 ## License
 
