@@ -8,3 +8,7 @@
 | D4 | https://learn.chatgpt.com/docs/agent-configuration/subagents | `hooks/hooks.json`, `README.md` | Codex subagent lifecycle and isolated context behavior | 2026-08-07 |
 | D5 | https://code.claude.com/docs/en/plugins | `.claude-plugin/*`, `README.md` | Claude Code plugin and marketplace compatibility | 2026-08-07 |
 | D6 | https://code.claude.com/docs/en/hooks | `hooks/hooks.json`, `hooks/inject-skills.mjs`, `README.md` | Claude Code lifecycle events and shared `additionalContext` output schema | 2026-08-07 |
+| D7 | https://github.com/earendil-works/pi/blob/v0.84.1/packages/coding-agent/docs/packages.md | `package.json`, `extensions/always-active.js`, `README.md` | Pi package manifest, Git sources, resource paths, and package discovery | 2026-08-10 |
+| D8 | https://github.com/earendil-works/pi/blob/v0.84.1/packages/coding-agent/docs/extensions.md | `extensions/always-active.js`, `README.md` | Pi extension registration and `before_agent_start` system-prompt replacement | 2026-08-10 |
+| D9 | https://opencode.ai/docs/rules/ | `README.md` | Global instruction files, remote instruction URLs, and configuration merging | 2026-08-10 |
+| D10 | https://opencode.ai/v2/docs/skills | `README.md` | OpenCode compatibility skill discovery and on-demand runtime loading | 2026-08-10 |

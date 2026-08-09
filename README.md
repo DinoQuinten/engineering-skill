@@ -1,17 +1,24 @@
-# discipline
+# discipline for Codex, Claude Code, Pi, and OpenCode
 
-An always-active engineering and communication discipline plugin for **Codex** and **Claude Code**.
+`discipline` supplies two shared skills for evidence-first communication and engineered software work. Codex, Claude Code, Pi, and OpenCode all use the unchanged `skills/` files as their source of truth.
 
-The repository keeps one shared implementation for both hosts: two Agent Skills plus lifecycle hooks that load them before the first response, after compaction, and in every subagent.
+Codex and Claude Code use lifecycle hooks. Pi uses a native package extension. OpenCode loads the same files through global `instructions`. All four integrations keep both skill bodies active without relying on model-selected skill invocation.
 
-## What it enforces
+## Capabilities
 
-| Skill | Workflow |
+| Skill | Enforced workflow |
 |---|---|
 | `response-discipline` | Direct answers, no filler or unsupported agreement, evidence before conclusions, concise structure, and RCA-formatted failure reports. |
 | `engineering-discipline` | Official-docs-first implementation, a `docs-used.md` ledger, the YAGNI ladder, root-cause fixes, behavior-level tests, blast-radius checks, and executed verification. |
 
-Both skills remain separate so each hook payload stays inline instead of spilling to a file-backed preview.
+| Host | Always-active mechanism | On-demand discovery |
+|---|---|---|
+| Codex | `SessionStart` and `SubagentStart` hooks | `agents/openai.yaml` and `~/.agents/skills` |
+| Claude Code | `SessionStart` and `SubagentStart` hooks | Claude skill discovery |
+| Pi | Native `before_agent_start` extension | Package `skills` resources |
+| OpenCode | Global `opencode.json` `instructions` | `~/.agents/skills` compatibility source |
+
+The package and extension shapes follow [docs-used.md D7 and D8](docs-used.md). OpenCode instruction and skill behavior follows [docs-used.md D9 and D10](docs-used.md).
 
 ## Install in Codex
 
@@ -22,7 +29,7 @@ codex plugin marketplace add DinoQuinten/engineering-skill
 codex plugin add discipline@dinoquinten
 ```
 
-Start a new Codex session after installation. Open `/hooks`, review the two plugin hook definitions, and trust them. Codex skips non-managed plugin hooks until their current definitions are trusted.
+Start a new session. Open `/hooks`, review the two plugin hook definitions, and trust them. Codex skips non-managed plugin hooks until their current definitions are trusted.
 
 ### From a local checkout
 
@@ -31,15 +38,9 @@ codex plugin marketplace add /absolute/path/to/engineering-skill
 codex plugin add discipline@dinoquinten
 ```
 
-Codex manages installed copies under:
+Codex manages installed copies under `~/.codex/plugins/cache/dinoquinten/discipline/`. Do not edit the cache. Edit the checkout, refresh or reinstall the marketplace plugin, then start a new session.
 
-```text
-~/.codex/plugins/cache/dinoquinten/discipline/
-```
-
-Do not edit the cache. Edit the checkout, refresh or reinstall the marketplace plugin, then start a new session.
-
-Codex also discovers standalone personal skills under `~/.agents/skills/<skill-name>/SKILL.md`, but standalone installation does not include this plugin's always-active hooks.
+Codex also discovers standalone personal skills under `~/.agents/skills/<skill-name>/SKILL.md`. Standalone installation does not include the always-active hooks.
 
 ## Install in Claude Code
 
@@ -59,19 +60,86 @@ Restart the session. Use `/context` to confirm that both skills appear in `Sessi
 /plugin install discipline@dinoquinten
 ```
 
-Claude Code continues to use `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`. Those files are intentional compatibility metadata, not leftovers.
+Claude Code manages installed copies under `~/.claude/plugins/cache/dinoquinten/discipline/`. Edit the checkout rather than the cache, then update or reinstall the plugin and restart the session.
 
-Claude Code manages installed copies under:
+The `.claude-plugin/` files are intentional compatibility metadata, not leftovers.
+
+## Install in Pi
+
+Install the GitHub package at the release tag:
 
 ```text
-~/.claude/plugins/cache/dinoquinten/discipline/
+pi install git:github.com/DinoQuinten/engineering-skill@v1.5.0
 ```
 
-Edit the checkout rather than the cache, then update or reinstall the plugin and restart the session.
+For a local checkout:
+
+```text
+pi install /absolute/path/to/engineering-skill
+```
+
+Pi reads `package.json`, discovers both shared skills, and loads `extensions/always-active.js`. The extension reads both required `SKILL.md` files during initialization and reports an error if either is missing or unreadable.
+
+On every `before_agent_start`, the extension appends the always-active preamble and both complete skill bodies to the current chained system prompt. It preserves the existing prompt and returns no persistent conversation message.
+
+## Install in OpenCode
+
+OpenCode needs two complementary configurations:
+
+- Global `instructions` keep both complete skill bodies active in every session.
+- `~/.agents/skills` keeps the skills advertised for explicit, on-demand loading through the skill tool.
+
+### Always-active remote instructions
+
+Merge the `instructions` entries below into the existing `~/.config/opencode/opencode.json`. Preserve every existing key and every existing instruction entry; do not replace the file.
+
+```json
+{
+  "instructions": [
+    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.5.0/skills/response-discipline/SKILL.md",
+    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.5.0/skills/engineering-discipline/SKILL.md"
+  ]
+}
+```
+
+The `v1.5.0` tag pins instruction behavior. Upgrade the two URLs together when adopting a later release.
+
+### Local or offline instructions
+
+Clone or download the repository, then use absolute local paths instead of the remote URLs. OpenCode resolves relative instruction paths from the active working directory, so global configuration should use absolute paths.
+
+```json
+{
+  "instructions": [
+    "/absolute/path/to/engineering-skill/skills/response-discipline/SKILL.md",
+    "/absolute/path/to/engineering-skill/skills/engineering-discipline/SKILL.md"
+  ]
+}
+```
+
+On Windows, use JSON paths such as `C:/absolute/path/to/engineering-skill/skills/response-discipline/SKILL.md`.
+
+### On-demand skill discovery
+
+Place or link both skill directories at these compatibility paths:
+
+```text
+~/.agents/skills/response-discipline/SKILL.md
+~/.agents/skills/engineering-discipline/SKILL.md
+```
+
+Verify the merged global configuration and discovered skills:
+
+```text
+opencode debug config
+opencode debug skill
+```
+
+OpenCode always includes configured `instructions`. Discovered skills work differently: OpenCode advertises their names and descriptions, then adds a body only when the model or user invokes the skill tool. Keep the global instruction entries when always-active enforcement is required.
 
 ## Use
 
-Installation activates both skills automatically. Normal prompts need no prefix:
+After the host-specific installation, normal prompts need no prefix:
 
 ```text
 Fix the failed sync and verify the behavior through its public API.
@@ -86,83 +154,61 @@ Expected workflow:
 5. Run verification and report its actual output.
 6. Format failures as Issue → Root cause → Fix → Verification.
 
-Codex users can also invoke a skill explicitly:
-
-```text
-$engineering-discipline review this migration plan
-$response-discipline rewrite this incident report
-```
-
-Codex invocation remains enabled in each skill's `agents/openai.yaml`. This keeps `$skill-name` invocation and normal skill discovery available when plugin hooks have not been trusted yet. Once hooks inject the full text, their preamble tells the model not to invoke the same skills again.
+Codex users can still invoke `$engineering-discipline` or `$response-discipline`. Pi and OpenCode also discover the skills for on-demand use. In Codex, Claude Code, and Pi, the always-active preamble tells the model not to load the full bodies again. OpenCode keeps its skill tool available even when global `instructions` already loaded the same bodies.
 
 ## Lifecycle coverage
 
-| Moment | Hook | Purpose |
-|---|---|---|
-| New, resumed, or cleared session | `SessionStart` | Apply both skills before the first response. |
-| After compaction | `SessionStart` with `compact` source | Restore instructions removed from active context. |
-| Every subagent | `SubagentStart` | Apply the same standards inside isolated agent contexts. |
+| Host | Moment | Integration | Result |
+|---|---|---|---|
+| Codex and Claude Code | New, resumed, cleared, or compacted root session | `SessionStart` | Inject each skill in a separate hook payload. |
+| Codex and Claude Code | Every subagent | `SubagentStart` | Apply the same standards in isolated context. |
+| Pi | Every submitted agent prompt | `before_agent_start` | Append both skills to the current chained system prompt. |
+| OpenCode | Every session using global config | `instructions` | Load both version-pinned files into context. |
 
-`PostCompact` is not used for instruction injection. Both hosts provide the supported compact-recovery path through `SessionStart` with a `compact` source.
+`PostCompact` is not used for Codex or Claude Code instruction injection. Both hosts provide compact recovery through `SessionStart` with a `compact` source.
 
 ## Layout
 
 ```text
 .
 ├── .agents/plugins/marketplace.json       # Codex repository marketplace
-├── .claude-plugin/
-│   ├── marketplace.json                   # Claude Code marketplace
-│   └── plugin.json                        # Claude Code manifest
+├── .claude-plugin/                        # Claude Code manifest and marketplace
 ├── .codex-plugin/plugin.json              # Codex manifest
-├── hooks/
-│   ├── hooks.json                         # Shared lifecycle registration
-│   └── inject-skills.mjs                  # Shared dual-host injector
-├── skills/
-│   ├── engineering-discipline/
-│   │   ├── agents/openai.yaml             # Codex UI/invocation metadata
-│   │   └── SKILL.md                       # Shared skill instructions
-│   └── response-discipline/
-│       ├── agents/openai.yaml
-│       └── SKILL.md
-└── test/inject-skills.test.mjs            # Cross-host hook tests
+├── extensions/always-active.js            # Native Pi before_agent_start extension
+├── hooks/                                 # Shared Codex and Claude Code hooks
+├── package.json                           # Native Pi package manifest
+├── skills/                                # Shared source-of-truth skill bodies
+└── test/                                  # Hook and Pi package behavior tests
 ```
 
-## Cross-platform hook behavior
-
-The hook uses the native root supplied by each host:
+## Codex and Claude Code hook behavior
 
 | Host | Plugin root | Personal skill ownership |
 |---|---|---|
 | Codex | `PLUGIN_ROOT` | `~/.agents/skills/<name>/SKILL.md` |
 | Claude Code | `CLAUDE_PLUGIN_ROOT` | `${CLAUDE_CONFIG_DIR:-~/.claude}/skills/<name>/SKILL.md` |
 
-Codex also supplies `CLAUDE_PLUGIN_ROOT` as a documented compatibility alias. `hooks/hooks.json` uses that alias so the same command works in both hosts; the injector prefers native `PLUGIN_ROOT` when Codex runs it.
+Codex also supplies `CLAUDE_PLUGIN_ROOT` as a compatibility alias. `hooks/hooks.json` uses that alias so one command works in both hosts; the injector prefers native `PLUGIN_ROOT` when Codex runs it.
 
 If a matching personal skill exists, the plugin skips its copy. The personal copy owns its activation behavior. Set `DISCIPLINE_FORCE_INJECT=1` to force the plugin copy during testing.
+
+Both skills remain separate in hook registration so each payload stays inline instead of spilling to a file-backed preview. Keep each `SKILL.md` below 9 KB and verify context delivery after changes.
 
 ## Add another shared skill
 
 1. Create `skills/<name>/SKILL.md` with `name` and `description` frontmatter.
 2. Add `skills/<name>/agents/openai.yaml` for Codex presentation and invocation policy.
-3. Add one command for the skill under both events in `hooks/hooks.json`:
-
-```json
-{
-  "type": "command",
-  "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/inject-skills.mjs\" --only <name>",
-  "statusMessage": "Loading <name>..."
-}
-```
-
-4. Keep the individual skill below 9 KB or explicitly test host context-spill behavior.
-5. Add hook tests before changing the injector.
+3. Add one command for the skill under both events in `hooks/hooks.json`.
+4. Add the skill to the Pi extension's required list if it must be always active there.
+5. Add its version-pinned URL or absolute path to OpenCode's global `instructions`.
+6. Add behavior tests before changing an injector.
 
 ## Test
 
-Run the deterministic hook suite:
+Run all deterministic suites:
 
 ```text
-node --test test/inject-skills.test.mjs
+node --test test/inject-skills.test.mjs test/pi-package.test.mjs
 ```
 
 PowerShell smoke test for Codex:
@@ -180,21 +226,24 @@ echo '{"hook_event_name":"SessionStart","source":"startup"}' \
   | CLAUDE_PLUGIN_ROOT="$PWD" node hooks/inject-skills.mjs --only response-discipline
 ```
 
-Expected output is one JSON object whose `hookSpecificOutput.additionalContext` contains only the requested skill. An unknown `--only` name or unreadable `skills/` directory produces no output and exits zero.
+The hook emits one JSON object whose `hookSpecificOutput.additionalContext` contains only the requested skill. An unknown `--only` name or unreadable `skills/` directory produces no output and exits zero.
 
 ## Limitations
 
-- Always-active injection consumes the complete text of both skills in every root session and subagent.
+- Always-active integration consumes the complete text of both skills in host context.
 - Codex requires users to review and trust non-managed plugin hooks after installation or hook changes.
-- Codex-specific `agents/openai.yaml` metadata has no effect in Claude Code.
-- Claude Code's `.claude-plugin/` metadata has no effect on native Codex packaging, although Codex retains legacy marketplace compatibility.
-- A personal skill with the same name suppresses plugin injection only for its matching host; the user must provide any desired always-active mechanism for that personal copy.
-- Generated `.skill` archives are ignored snapshots. `skills/` is the source of truth for both hosts.
+- OpenCode remote instructions require network access at session start; use absolute local paths for offline operation.
+- OpenCode on-demand discovery alone does not enforce always-active behavior.
+- Pi extensions run with the installing user's system permissions; review the source before installation.
+- Host-specific metadata has no effect in other hosts.
+- A personal skill with the same name suppresses Codex or Claude Code plugin injection only for its matching host.
+- Generated `.skill` archives are ignored snapshots. `skills/` is the source of truth.
 
 ## Requirements
 
-- Codex with plugin and hook support, or Claude Code with plugin support.
-- Node.js on `PATH` for lifecycle injection and tests.
+- One supported host: Codex with plugin and hook support, Claude Code with plugin support, Pi 0.84.1, or OpenCode with global instructions support.
+- Node.js on `PATH` for Codex and Claude Code lifecycle injection and repository tests.
+- Network access for GitHub installation and OpenCode remote instructions; local checkout paths support offline use.
 
 ## License
 
