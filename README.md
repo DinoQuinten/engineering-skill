@@ -1,8 +1,8 @@
 # discipline for Codex, Claude Code, Pi, and OpenCode
 
-`discipline` supplies two shared skills for evidence-first communication and engineered software work. Codex, Claude Code, Pi, and OpenCode all use the unchanged `skills/` files as their source of truth.
+`discipline` supplies three shared skills for evidence-first communication, engineered software work, and agent task tracking. Codex, Claude Code, Pi, and OpenCode all use the unchanged `skills/` files as their source of truth.
 
-Codex and Claude Code use lifecycle hooks. Pi uses a native package extension. OpenCode loads the same files through global `instructions`. All four integrations keep both skill bodies active without relying on model-selected skill invocation.
+Codex and Claude Code use lifecycle hooks. Pi uses a native package extension. OpenCode loads the same files through global `instructions`. All four integrations keep all skill bodies active without relying on model-selected skill invocation.
 
 ## Capabilities
 
@@ -10,6 +10,7 @@ Codex and Claude Code use lifecycle hooks. Pi uses a native package extension. O
 |---|---|
 | `response-discipline` | Direct answers, no filler or unsupported agreement, evidence before conclusions, concise structure, and RCA-formatted failure reports. |
 | `engineering-discipline` | Official-docs-first implementation, a `docs-used.md` ledger, the YAGNI ladder, root-cause fixes, behavior-level tests, blast-radius checks, and executed verification. |
+| `task-registry` | Append-only `registry.jsonl` recording every task any agent, sub-agent, or worker job performs — including no-diff work like audits, RCA, and decisions. |
 
 | Host | Always-active mechanism | On-demand discovery |
 |---|---|---|
@@ -69,7 +70,7 @@ The `.claude-plugin/` files are intentional compatibility metadata, not leftover
 Install the GitHub package at the release tag:
 
 ```text
-pi install git:github.com/DinoQuinten/engineering-skill@v1.5.0
+pi install git:github.com/DinoQuinten/engineering-skill@v1.6.0
 ```
 
 For a local checkout:
@@ -78,15 +79,15 @@ For a local checkout:
 pi install /absolute/path/to/engineering-skill
 ```
 
-Pi reads `package.json`, discovers both shared skills, and loads `extensions/always-active.js`. The extension reads both required `SKILL.md` files during initialization and reports an error if either is missing or unreadable.
+Pi reads `package.json`, discovers all three shared skills, and loads `extensions/always-active.js`. The extension reads all required `SKILL.md` files during initialization and reports an error if any is missing or unreadable.
 
-On every `before_agent_start`, the extension appends the always-active preamble and both complete skill bodies to the current chained system prompt. It preserves the existing prompt and returns no persistent conversation message.
+On every `before_agent_start`, the extension appends the always-active preamble and all complete skill bodies to the current chained system prompt. It preserves the existing prompt and returns no persistent conversation message.
 
 ## Install in OpenCode
 
 OpenCode needs two complementary configurations:
 
-- Global `instructions` keep both complete skill bodies active in every session.
+- Global `instructions` keep all complete skill bodies active in every session.
 - `~/.agents/skills` keeps the skills advertised for explicit, on-demand loading through the skill tool.
 
 ### Always-active remote instructions
@@ -96,13 +97,14 @@ Merge the `instructions` entries below into the existing `~/.config/opencode/ope
 ```json
 {
   "instructions": [
-    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.5.0/skills/response-discipline/SKILL.md",
-    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.5.0/skills/engineering-discipline/SKILL.md"
+    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.6.0/skills/response-discipline/SKILL.md",
+    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.6.0/skills/engineering-discipline/SKILL.md",
+    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.6.0/skills/task-registry/SKILL.md"
   ]
 }
 ```
 
-The `v1.5.0` tag pins instruction behavior. Upgrade the two URLs together when adopting a later release.
+The `v1.6.0` tag pins instruction behavior. Upgrade all three URLs together when adopting a later release.
 
 ### Local or offline instructions
 
@@ -112,7 +114,8 @@ Clone or download the repository, then use absolute local paths instead of the r
 {
   "instructions": [
     "/absolute/path/to/engineering-skill/skills/response-discipline/SKILL.md",
-    "/absolute/path/to/engineering-skill/skills/engineering-discipline/SKILL.md"
+    "/absolute/path/to/engineering-skill/skills/engineering-discipline/SKILL.md",
+    "/absolute/path/to/engineering-skill/skills/task-registry/SKILL.md"
   ]
 }
 ```
@@ -126,6 +129,7 @@ Place or link both skill directories at these compatibility paths:
 ```text
 ~/.agents/skills/response-discipline/SKILL.md
 ~/.agents/skills/engineering-discipline/SKILL.md
+~/.agents/skills/task-registry/SKILL.md
 ```
 
 Verify the merged global configuration and discovered skills:
@@ -162,8 +166,8 @@ Codex users can still invoke `$engineering-discipline` or `$response-discipline`
 |---|---|---|---|
 | Codex and Claude Code | New, resumed, cleared, or compacted root session | `SessionStart` | Inject each skill in a separate hook payload. |
 | Codex and Claude Code | Every subagent | `SubagentStart` | Apply the same standards in isolated context. |
-| Pi | Every submitted agent prompt | `before_agent_start` | Append both skills to the current chained system prompt. |
-| OpenCode | Every session using global config | `instructions` | Load both version-pinned files into context. |
+| Pi | Every submitted agent prompt | `before_agent_start` | Append all skills to the current chained system prompt. |
+| OpenCode | Every session using global config | `instructions` | Load all version-pinned files into context. |
 
 `PostCompact` is not used for Codex or Claude Code instruction injection. Both hosts provide compact recovery through `SessionStart` with a `compact` source.
 
@@ -230,7 +234,7 @@ The hook emits one JSON object whose `hookSpecificOutput.additionalContext` cont
 
 ## Limitations
 
-- Always-active integration consumes the complete text of both skills in host context.
+- Always-active integration consumes the complete text of all skills in host context.
 - Codex requires users to review and trust non-managed plugin hooks after installation or hook changes.
 - OpenCode remote instructions require network access at session start; use absolute local paths for offline operation.
 - OpenCode on-demand discovery alone does not enforce always-active behavior.
