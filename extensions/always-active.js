@@ -9,7 +9,7 @@ const PREAMBLE =
   'already here. They override default response and engineering ' +
   'behavior; explicit user instructions still win.\n';
 
-const REQUIRED_SKILLS = ['engineering-discipline', 'response-discipline'];
+const REQUIRED_SKILLS = ['engineering-discipline', 'response-discipline', 'task-registry'];
 const defaultSkillsRoot = fileURLToPath(new URL('../skills', import.meta.url));
 
 function readRequiredSkills(skillsRoot) {

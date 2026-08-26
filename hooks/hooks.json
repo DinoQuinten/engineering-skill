@@ -12,6 +12,11 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/inject-skills.mjs\" --only engineering-discipline",
             "statusMessage": "Loading engineering-discipline..."
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/inject-skills.mjs\" --only task-registry",
+            "statusMessage": "Loading task-registry..."
           }
         ]
       }
@@ -28,6 +33,11 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/inject-skills.mjs\" --only engineering-discipline",
             "statusMessage": "Loading engineering-discipline for subagent..."
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/inject-skills.mjs\" --only task-registry",
+            "statusMessage": "Loading task-registry for subagent..."
           }
         ]
       }
