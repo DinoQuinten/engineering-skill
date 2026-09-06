@@ -1,6 +1,6 @@
 {
   "name": "discipline",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "Response and engineering discipline for Codex, Claude Code, Pi, and OpenCode: evidence-first answers, RCA reports, docs-first implementation, root-cause fixes, behavior-level tests, and executed verification.",
   "author": {
     "name": "DinoQuinten",

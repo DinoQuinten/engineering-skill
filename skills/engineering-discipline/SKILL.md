@@ -59,6 +59,18 @@ Never on the chopping block: validation, error handling, security, accessibility
 
 Fix only what was asked. Adjacent problems found along the way: list them, don't fix without confirmation.
 
+## Plan in dependency order
+
+- Define the outcome, constraints, and completion criteria.
+- Apply the minimal code ladder before proposing new implementation.
+- Order meaningful steps by dependencies; give each an observable result and an appropriate check.
+- Expand complex or uncertain steps; keep simple steps concise.
+- Verify behavior, not internal operations just to match plan steps.
+- Avoid speculative helpers, needless abstractions, and extra approval checkpoints for authorized routine work.
+- In Plan mode, describe changes and checks without implementing them.
+
+Sorting example: ordering and mutation requirements → existing sort support → custom algorithm if needed → comparison, movement, termination → verify ordering and preservation of all elements, including duplicates.
+
 ## Verification is executed, not claimed
 
 - Never state "passes / works / fixed" without having run the command in this session. Paste the actual output line as evidence.

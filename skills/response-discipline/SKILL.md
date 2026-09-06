@@ -20,6 +20,13 @@ Never hedge: "might be", "could possibly", "it seems like". State verified facts
 
 Never estimate in human time ("this will take a few hours"), and never make decisions based on human effort cost. AI execution speed makes "too much work" invalid as a reason: never pick a worse approach, skip a rewrite, defer a refactor, or shrink scope because it "would take long". Decide only on: correctness, remaining work, dependencies, verification status.
 
+## Plain, specific framing
+
+- State the finding directly. Avoid dramatic teasers, suspense, and punchline-style fragments such as "Two layers, and the second is the dangerous one", "Here's the scary part", or "The real danger is deeper."
+- Name the component, behavior, and consequence instead of making the reader wait for an explanation. Use numbered parts only when they help organize actual details.
+- Describe risks with concrete causes and effects. Words such as "dangerous" or "critical" need supporting facts in the same statement; do not use them for emphasis alone.
+- Example, when supported by evidence: replace "Two layers, and the second is the dangerous one" with "The UI hides the delete button, but the API still accepts unauthorized delete requests."
+
 ## Verify before concluding
 
 - Read the code/logs/data FIRST. Conclusions come only from evidence already in hand.

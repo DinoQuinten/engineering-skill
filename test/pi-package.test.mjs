@@ -26,7 +26,10 @@ async function loadExtension() {
 test('package manifest exposes the shared skills and native Pi extension', () => {
   const manifest = JSON.parse(readFileSync(packagePath, 'utf8'));
 
-  assert.equal(manifest.version, '1.5.0');
+  for (const directory of ['.codex-plugin', '.claude-plugin']) {
+    const plugin = JSON.parse(readFileSync(join(repositoryRoot, directory, 'plugin.json'), 'utf8'));
+    assert.equal(manifest.version, plugin.version, `${directory} version must match package.json`);
+  }
   assert.equal(manifest.type, 'module');
   assert.equal(manifest.private, true);
   assert.ok(manifest.keywords.includes('pi-package'));
