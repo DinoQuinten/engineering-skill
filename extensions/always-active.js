@@ -12,11 +12,25 @@ const PREAMBLE =
 const REQUIRED_SKILLS = ['engineering-discipline', 'response-discipline', 'task-registry'];
 const defaultSkillsRoot = fileURLToPath(new URL('../skills', import.meta.url));
 
+/**
+ * Drops the leading YAML frontmatter block from a skill body.
+ *
+ * `name` and `description` are how Pi discovers and advertises the skill from
+ * `pi.skills` in package.json, so they stay in the file. The injected copy needs
+ * neither: the preamble already states these skills are in force and must not be
+ * invoked. Only a block starting on line 1 is removed, leaving any `---` rule
+ * inside the body alone.
+ */
+function stripFrontmatter(body) {
+  const match = /^---\r?\n[\s\S]*?\r?\n---\r?\n+/.exec(body);
+  return match ? body.slice(match[0].length) : body;
+}
+
 function readRequiredSkills(skillsRoot) {
   return REQUIRED_SKILLS.map((name) => {
     const path = join(skillsRoot, name, 'SKILL.md');
     try {
-      return readFileSync(path, 'utf8');
+      return stripFrontmatter(readFileSync(path, 'utf8'));
     } catch (cause) {
       throw new Error(
         `Failed to initialize discipline Pi extension: required skill ${path} is missing or unreadable`,

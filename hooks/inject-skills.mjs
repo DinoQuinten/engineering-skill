@@ -15,10 +15,17 @@
  * ONE SKILL PER INVOCATION. `--only <name>` emits just that skill, and hooks.json
  * registers one command per skill. Concatenating them into a single block was
  * measured at 13.6 KB, over the limit at which Claude Code writes the context to
- * a file and shows the model only a ~2 KB preview — everything past the cut was
- * silently unavailable. Injected individually, both arrive inline in full on
- * Claude Code and stay below Codex's default per-hook context threshold. Keep
- * any single SKILL.md below 9 KB and verify context delivery after it changes.
+ * a file and shows the model only a ~1.7 KB preview — everything past the cut was
+ * silently unavailable. Injected individually, all arrive inline in full on
+ * Claude Code and stay below Codex's default per-hook context threshold.
+ *
+ * THE LIMIT IS 10,000 CHARACTERS of additionalContext, measured by bisection
+ * against a live session rather than estimated: a 10,000-character payload was
+ * delivered inline, 10,081 was replaced by the preview. The earlier "9 KB"
+ * figure in this comment was a guess and is superseded. Budgets, with the
+ * ~294-character preamble accounted for, live in test/inject-skills.test.mjs as
+ * MAX_CONTEXT_CHARS; the size-guard test there enforces them against the real
+ * skills/ directory, so this ceiling is no longer only a comment.
  *
  * With no `--only`, every skill is emitted as one block. That is the direct-test
  * path; it is subject to the truncation above and is not what hooks.json uses.
@@ -54,6 +61,24 @@ const pluginRoot =
   process.env.PLUGIN_ROOT ||
   process.env.CLAUDE_PLUGIN_ROOT ||
   dirname(dirname(fileURLToPath(import.meta.url)));
+
+/**
+ * Drops the leading YAML frontmatter block from a skill body.
+ *
+ * The frontmatter is invocation metadata — `name` and `description` — that every
+ * host reads off disk to discover and advertise the skill. It is required there
+ * and is never removed from the file. In the injected copy it is dead weight
+ * that also contradicts the preamble above it, which tells the model not to
+ * invoke these skills at all. Stripping it saves ~1.7 KB across the three
+ * skills, which matters against the measured 10,000-character cap.
+ *
+ * Only a block starting on line 1 is removed, so a `---` horizontal rule inside
+ * the body is left alone.
+ */
+function stripFrontmatter(body) {
+  const match = /^---\r?\n[\s\S]*?\r?\n---\r?\n+/.exec(body);
+  return match ? body.slice(match[0].length) : body;
+}
 
 function readStdin() {
   try {
@@ -101,7 +126,7 @@ function collectSkills() {
   for (const name of names) {
     if (ownedByUser(name)) continue;
     try {
-      bodies.push(readFileSync(join(skillsDir, name, 'SKILL.md'), 'utf8'));
+      bodies.push(stripFrontmatter(readFileSync(join(skillsDir, name, 'SKILL.md'), 'utf8')));
     } catch {
       // Directory without a readable SKILL.md is not a skill — skip it.
     }

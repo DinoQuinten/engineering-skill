@@ -11,19 +11,19 @@ Apply on every coding, design, and documentation task. Pairs with the response-d
 
 For any external API, library, SDK, config format, or tool behavior:
 
-1. Fetch the official documentation online BEFORE writing code. Training memory is stale and wrong for version-specific details.
+1. Fetch official documentation online BEFORE writing code. Training memory is stale and wrong for version-specific details.
 2. One source is a claim, not a fact. Corroborate with the official/primary doc before building on it; unofficial mirrors and blogs are hints.
 3. Never extend a doc claim past what it states. "No date params" says nothing about payload bounds — mark the gap as unmeasured, don't infer.
-4. Plan the approach from what the docs actually say — endpoints, params, auth flow, limits.
+4. Plan from what the docs say — endpoints, params, auth flow, limits.
 5. Implement against the doc, not the recollection.
 
 Maintain a doc ledger in the project root — `docs-used.md` (or `.json` if the project prefers):
 
-- Append an entry every time a doc informs an implementation decision.
+- Append an entry whenever a doc informs an implementation decision.
 - Read the ledger at session start — re-verify against listed docs instead of re-assuming.
-- If behavior looks wrong later, the ledger points to the exact doc to re-check.
+- If behavior looks wrong later, the ledger names the exact doc to re-check.
 
-Give each ledger entry an ID, and reference that ID in code at the point of use — `@see` in a JSDoc block for functions/constants (IDE-rendered), plain comment for lines inside a body:
+Give each ledger entry an ID and reference it in code where used — `@see` in a JSDoc block for functions/constants (IDE-rendered), plain comment for lines inside a body:
 
 ```markdown
 | ID | Doc URL | Used in | Purpose | Date |
@@ -69,15 +69,17 @@ Fix only what was asked. Adjacent problems found along the way: list them, don't
 - Avoid speculative helpers, needless abstractions, and extra approval checkpoints for authorized routine work.
 - In Plan mode, describe changes and checks without implementing them.
 
-Sorting example: ordering and mutation requirements → existing sort support → custom algorithm if needed → comparison, movement, termination → verify ordering and preservation of all elements, including duplicates.
+Sorting example: ordering and mutation requirements → existing sort support → custom algorithm if needed → comparison, movement, termination → verify ordering and that no element is lost, duplicates included.
 
 ## Verification is executed, not claimed
 
 - Never state "passes / works / fixed" without having run the command in this session. Paste the actual output line as evidence.
 - End every RCA/fix with what remains unverified and the single cheapest check that would settle it. Omit if nothing is unverified.
 - Before editing a shared function, type, or constant: grep all consumers first; state how many were checked.
-- Risky changes (migrations, DELETE/UPDATE over ranges, auth/token flows, anything production-touching): never merge or run without tests passing; state the rollback path before executing. Destructive operations get a dry-run or row-count check first.
+- Risky changes (migrations, DELETE/UPDATE over ranges, auth/token flows, anything production-touching): never merge or run without tests passing; state rollback path before executing. Destructive operations get a dry-run or row-count check first.
 - Before shipping any change that can reach a destructive operation (DELETE/UPDATE/overwrite): trace every path from the new input/value to that operation — CLI flags, config, adapters — not just direct callers of the function edited.
+- **Removal needs a measured counterfactual.** Dropping an index, cache, column, or config breaks a performance contract no test catches. Usage counters (`idx_scan`, hit counts, last-accessed) measure frequency, never value — a thing used rarely may save minutes per run. Force the fallback path and time it on the largest real input before proposing removal.
+- **Deployed config is not repo config.** `.env.example`, compose files, and guards around them state intent, not the running system. Read environment-dependent behavior — feature flags, security toggles, connection roles — from the deployment. Absent from the repo never means absent in production.
 - On entering a repo, read `docs-used.md` (if present) before the first edit.
 
 ## Logging
@@ -90,14 +92,14 @@ Sorting example: ordering and mutation requirements → existing sort support �
 
 - The code is not the product; the solved problem is. Optimize for the user's actual need, not the most impressive implementation.
 - No clever tricks — boring, obvious code over smart code. If it needs a comment to explain the trick, use the untricky version.
-- A working solution now beats a polished abstraction later. Extra layers added after it works usually make it worse.
+- A working solution now beats a polished abstraction later. Layers added after it works usually make it worse.
 
 ## Design from business behavior
 
 APIs, DB schemas, and modules are designed from the business behavior they must serve — not from the shape of the data source or the convenience of the implementation.
 
-- Start from the questions the business asks ("which sites have gaps?", "what changed this month?") and design tables/endpoints to answer them directly.
-- State should record what the business needs to know, not what's easy to derive. Example: a sync system records fetch progress explicitly (`sync_day` rows), instead of reconstructing it by probing fact tables — the business question is "what have we fetched?", so store that.
+- Start from questions the business asks ("which sites have gaps?", "what changed this month?") and design tables/endpoints to answer them directly.
+- State should record what the business needs to know, not what's easy to derive. Example: a sync system records fetch progress explicitly (`sync_day` rows) instead of probing fact tables to reconstruct it — the business question is "what have we fetched?", so store that.
 - API contracts expose business operations ("replace this site's window", "get the decay report"), not raw CRUD over internal tables.
 - Schema changes follow behavior changes. If a new business question can't be answered without joins across half the schema, the schema is modeling the source, not the domain.
 
@@ -124,7 +126,7 @@ Style:
 API documentation specifically:
 - Organize by use case ("replace a site's window", "get the decay report"), not alphabetical endpoint lists. Reference exists; use case is the entry point.
 - Every code example must have been executed — paste the exact code that ran, never write examples from memory. Stale examples rot; re-run on API changes.
-- Document the unhappy path per endpoint: each error code, its likely cause, and the fix. Developers live in errors, not the 200 response.
+- Document the unhappy path per endpoint: each error code, its likely cause, and its fix. Developers live in errors, not the 200 response.
 - Lead with the common case; advanced options after. Same request→response order everywhere.
 - 3 AM test: a tired developer with a deadline must find a working, copy-pasteable answer in 30 seconds, and self-serve out of any error.
 

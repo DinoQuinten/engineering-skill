@@ -19,6 +19,13 @@ function occurrences(text, marker) {
   return text.split(marker).length - 1;
 }
 
+/** Mirrors the strip in extensions/always-active.js: frontmatter is disk-only metadata. */
+function bodyOf(skillName) {
+  const raw = readFileSync(join(repositoryRoot, 'skills', skillName, 'SKILL.md'), 'utf8');
+  const match = /^---\r?\n[\s\S]*?\r?\n---\r?\n+/.exec(raw);
+  return match ? raw.slice(match[0].length) : raw;
+}
+
 async function loadExtension() {
   return import(`${pathToFileURL(extensionPath).href}?test=${Date.now()}`);
 }
@@ -53,20 +60,18 @@ test('public Pi extension preserves the base prompt and injects each required bo
   assert.deepEqual([...registered.keys()], ['before_agent_start']);
 
   const result = await registered.get('before_agent_start')({ systemPrompt: 'BASE PROMPT' }, {});
-  const engineering = readFileSync(
-    join(repositoryRoot, 'skills', 'engineering-discipline', 'SKILL.md'),
-    'utf8',
-  );
-  const response = readFileSync(
-    join(repositoryRoot, 'skills', 'response-discipline', 'SKILL.md'),
-    'utf8',
-  );
 
   assert.ok(result.systemPrompt.startsWith('BASE PROMPT'));
   assert.equal(result.message, undefined);
   assert.equal(occurrences(result.systemPrompt, preamble), 1);
-  assert.equal(occurrences(result.systemPrompt, engineering), 1);
-  assert.equal(occurrences(result.systemPrompt, response), 1);
+  assert.equal(occurrences(result.systemPrompt, bodyOf('engineering-discipline')), 1);
+  assert.equal(occurrences(result.systemPrompt, bodyOf('response-discipline')), 1);
+
+  // Frontmatter stays on disk for host discovery and is dropped from the prompt.
+  assert.doesNotMatch(result.systemPrompt, /^name: (response|engineering)-discipline$/m);
+  assert.doesNotMatch(result.systemPrompt, /^description: /m);
+  assert.match(result.systemPrompt, /^# Response Discipline$/m);
+  assert.match(result.systemPrompt, /^# Engineering Discipline$/m);
 });
 
 test('each before_agent_start handler call injects exactly one fresh copy', async () => {

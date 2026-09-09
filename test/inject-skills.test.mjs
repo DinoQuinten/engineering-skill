@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -199,4 +199,72 @@ test('unknown skills and missing skill directories produce no output', () => {
     only: 'not-a-skill',
   })), null);
   assert.equal(parseOutput(runHook({ pluginRoot: missingRoot, userRoot })), null);
+});
+
+/**
+ * The hook payload cap is 10,000 characters of additionalContext, measured by
+ * bisection against live sessions rather than estimated: a 10,000-character
+ * payload arrived inline and 10,081 was replaced by a ~1.7 KB file preview, with
+ * everything past the cut silently unavailable to the model. The budget below
+ * leaves 2% of headroom so a small edit cannot push a skill over the cliff.
+ */
+const MAX_CONTEXT_CHARS = 9800;
+
+function emitShippedSkill(name) {
+  const result = runHook({
+    host: 'claude',
+    pluginRoot: repositoryRoot,
+    userRoot: temporaryDirectory('shipped-user'),
+    claudeConfigDirectory: temporaryDirectory('shipped-config'),
+    only: name,
+    force: true,
+  });
+  return parseOutput(result).hookSpecificOutput.additionalContext;
+}
+
+function shippedSkillNames() {
+  return readdirSync(join(repositoryRoot, 'skills'), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort();
+}
+
+test('every shipped skill stays under the measured context cap', () => {
+  for (const name of shippedSkillNames()) {
+    const context = emitShippedSkill(name);
+    assert.ok(
+      context.length <= MAX_CONTEXT_CHARS,
+      `${name} emits ${context.length} chars, over the ${MAX_CONTEXT_CHARS} budget — it will be truncated to a file preview`,
+    );
+  }
+});
+
+test('injected skills carry the heading but not the frontmatter', () => {
+  for (const name of shippedSkillNames()) {
+    const context = emitShippedSkill(name);
+    assert.doesNotMatch(context, /^name:\s/m, `${name} still injects its frontmatter name`);
+    assert.doesNotMatch(context, /^description:\s/m, `${name} still injects its frontmatter description`);
+    assert.match(context, /^# \S/m, `${name} lost its H1 heading`);
+  }
+});
+
+test('a --- rule inside a skill body survives frontmatter stripping', () => {
+  const pluginRoot = temporaryDirectory('rule-plugin');
+  const skillDirectory = join(pluginRoot, 'skills', 'response-discipline');
+  mkdirSync(skillDirectory, { recursive: true });
+  writeFileSync(
+    join(skillDirectory, 'SKILL.md'),
+    '---\nname: response-discipline\ndescription: fixture\n---\n\n# Heading\n\nabove\n\n---\n\nBODY RULE KEPT\n',
+    'utf8',
+  );
+
+  const context = parseOutput(runHook({
+    pluginRoot,
+    userRoot: temporaryDirectory('rule-user'),
+    only: 'response-discipline',
+  })).hookSpecificOutput.additionalContext;
+
+  assert.doesNotMatch(context, /^name: response-discipline$/m);
+  assert.match(context, /^---$/m);
+  assert.match(context, /BODY RULE KEPT/);
 });

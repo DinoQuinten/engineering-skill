@@ -12,3 +12,4 @@
 | D8 | https://github.com/earendil-works/pi/blob/v0.84.1/packages/coding-agent/docs/extensions.md | `extensions/always-active.js`, `README.md` | Pi extension registration and `before_agent_start` system-prompt replacement | 2026-08-10 |
 | D9 | https://opencode.ai/docs/rules/ | `README.md` | Global instruction files, remote instruction URLs, and configuration merging | 2026-08-10 |
 | D10 | https://opencode.ai/v2/docs/skills | `README.md` | OpenCode compatibility skill discovery and on-demand runtime loading | 2026-08-10 |
+| D11 | https://www.redwoodink.com/resources/10-tricks-to-reduce-your-word-count-in-academic-writing | `skills/response-discipline/SKILL.md`, `skills/engineering-discipline/SKILL.md` | Word-count reduction method for the concision pass; censused which tricks apply to already-dense rule text | 2026-09-09 |

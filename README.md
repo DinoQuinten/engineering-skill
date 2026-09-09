@@ -196,7 +196,18 @@ Codex also supplies `CLAUDE_PLUGIN_ROOT` as a compatibility alias. `hooks/hooks.
 
 If a matching personal skill exists, the plugin skips its copy. The personal copy owns its activation behavior. Set `DISCIPLINE_FORCE_INJECT=1` to force the plugin copy during testing.
 
-Both skills remain separate in hook registration so each payload stays inline instead of spilling to a file-backed preview. Keep each `SKILL.md` below 9 KB and verify context delivery after changes.
+Each skill is registered as its own hook command so every payload stays inline instead of spilling to a file-backed preview.
+
+**The cap is 10,000 characters of `additionalContext`**, measured by bisection against live sessions: 10,000 characters arrived inline, 10,081 was replaced by a ~1.7 KB preview with the remainder silently unavailable. Injectors strip the YAML frontmatter before emitting — it is disk-only metadata for host discovery, worth ~1.7 KB across the three skills — and `test/inject-skills.test.mjs` enforces the budget against the real `skills/` directory, so the limit is a test rather than a comment.
+
+### Keeping personal copies in sync
+
+If a matching skill exists under your personal skills directory, the plugin skips its own copy, so hand-editing both produces two forks that drift. Author skills in this repo and regenerate the personal copies:
+
+```bash
+npm run sync        # repo -> ~/.claude/skills (only names already present there)
+npm run sync:check  # exits 1 if a personal copy has drifted from the repo
+```
 
 ## Add another shared skill
 
