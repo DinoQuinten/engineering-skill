@@ -70,7 +70,7 @@ The `.claude-plugin/` files are intentional compatibility metadata, not leftover
 Install the GitHub package at the release tag:
 
 ```text
-pi install git:github.com/DinoQuinten/engineering-skill@v1.8.0
+pi install git:github.com/DinoQuinten/engineering-skill@v1.9.0
 ```
 
 For a local checkout:
@@ -116,14 +116,14 @@ Merge the `instructions` entries below into the existing `~/.config/opencode/ope
 ```json
 {
   "instructions": [
-    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.8.0/skills/response-discipline/SKILL.md",
-    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.8.0/skills/engineering-discipline/SKILL.md",
-    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.8.0/skills/task-registry/SKILL.md"
+    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.9.0/skills/response-discipline/SKILL.md",
+    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.9.0/skills/engineering-discipline/SKILL.md",
+    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.9.0/skills/task-registry/SKILL.md"
   ]
 }
 ```
 
-The `v1.8.0` tag pins instruction behavior. Upgrade all three URLs together when adopting a later release.
+The `v1.9.0` tag pins instruction behavior. Upgrade all three URLs together when adopting a later release.
 
 ### Local or offline instructions
 
