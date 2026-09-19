@@ -1,7 +1,7 @@
 {
   "name": "discipline",
   "version": "1.9.0",
-  "description": "Response and engineering discipline for Codex, Claude Code, Pi, and OpenCode: evidence-first answers, RCA reports, docs-first implementation, root-cause fixes, behavior-level tests, and executed verification.",
+  "description": "Response, engineering, registry, and planning discipline for Codex, Claude Code, Pi, and OpenCode: evidence-first work, root-cause fixes, decomposition, and executed verification.",
   "author": {
     "name": "DinoQuinten",
     "email": "77713617+DinoQuinten@users.noreply.github.com",
@@ -15,20 +15,21 @@
     "engineering",
     "code-quality",
     "communication",
-    "rca"
+    "rca",
+    "planning"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Discipline",
-    "shortDescription": "Evidence-first engineering and responses",
-    "longDescription": "Keep response and engineering discipline available across Codex, Claude Code, Pi, and OpenCode, with native always-active integration for each host.",
+    "shortDescription": "Evidence-first engineering and planning",
+    "longDescription": "Apply response, engineering, registry, and planning discipline across Codex, Claude Code, Pi, and OpenCode through host-appropriate lifecycle integration.",
     "developerName": "DinoQuinten",
     "category": "Developer Tools",
     "capabilities": [
       "Interactive"
     ],
     "defaultPrompt": [
-      "Apply disciplined engineering and response standards to this task."
+      "Apply disciplined response, engineering, registry, and planning standards to this task."
     ]
   }
 }
