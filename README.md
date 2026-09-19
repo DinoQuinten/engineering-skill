@@ -1,8 +1,8 @@
 # discipline for Codex, Claude Code, Pi, and OpenCode
 
-`discipline` supplies three shared skills for evidence-first communication, engineered software work, and agent task tracking. Codex, Claude Code, Pi, and OpenCode all use the unchanged `skills/` files as their source of truth.
+`discipline` supplies four shared skills for evidence-first communication, engineered software work, agent task tracking, and plan-mode reasoning. Codex, Claude Code, Pi, and OpenCode all use the unchanged `skills/` files as their source of truth.
 
-Codex and Claude Code use lifecycle hooks. Pi uses a native package extension. OpenCode loads the same files through global `instructions`. All four integrations keep all skill bodies active without relying on model-selected skill invocation.
+Codex and Claude Code use lifecycle hooks. Pi uses a native package extension. OpenCode supports a native plugin or global `instructions`. Response, engineering, and task-registry discipline stay active; planning-discipline loads only while planning or as an explicit skill.
 
 ## Capabilities
 
@@ -11,6 +11,7 @@ Codex and Claude Code use lifecycle hooks. Pi uses a native package extension. O
 | `response-discipline` | Direct answers, no filler or unsupported agreement, evidence before conclusions, concise structure, and RCA-formatted failure reports. |
 | `engineering-discipline` | Official-docs-first implementation, a `docs-used.md` ledger, the YAGNI ladder, root-cause fixes, behavior-level tests, blast-radius checks, and executed verification. |
 | `task-registry` | Append-only `registry.jsonl` recording every task any agent, sub-agent, or worker job performs — including no-diff work like audits, RCA, and decisions. |
+| `planning-discipline` | Host-neutral decomposition, alternative analysis, self-consistency, ReAct investigation, root-cause planning, and optional user-approved debate. |
 
 | Host | Always-active mechanism | On-demand discovery |
 |---|---|---|
@@ -79,7 +80,7 @@ For a local checkout:
 pi install /absolute/path/to/engineering-skill
 ```
 
-Pi reads `package.json`, discovers all three shared skills, and loads `extensions/always-active.js`. The extension reads all required `SKILL.md` files during initialization and reports an error if any is missing or unreadable.
+Pi reads `package.json`, discovers all four shared skills, and loads `extensions/always-active.js`. The extension requires the three always-active skills, adds a compact planning reminder, and exposes the full planning body through the planner bridge.
 
 On every `before_agent_start`, the extension appends the always-active preamble and all complete skill bodies to the current chained system prompt. It preserves the existing prompt and returns no persistent conversation message.
 
@@ -107,7 +108,7 @@ Or copy `extensions/opencode-discipline.js` and `extensions/skill-body.js` into 
 
 The plugin uses `chat.message` to learn the active agent, because the classic `experimental.chat.system.transform` hook carries no agent identity. Verified on OpenCode 1.18.31: the build agent gets the always-active block only, the Plan agent gets the always-active block plus `planning-discipline`, and neither block is duplicated within one system build.
 
-Known overhead: OpenCode rebuilds the system prompt for auxiliary calls (session title, compaction) and the classic transform cannot tell them apart, so the always-active block is also added there. Use the `instructions` route below if that cost matters. Do not load `opencode-planning-classic.js` alongside this plugin — it is the earlier reminder-only adapter and is superseded by this one.
+Known overhead: OpenCode rebuilds the system prompt for auxiliary calls (session title, compaction), and the classic transform cannot distinguish them. The always-active block is therefore added to those calls; while the tracked agent is Plan, `planning-discipline` can be added too. Use the `instructions` route below if that cost matters. Do not load `opencode-planning-classic.js` alongside this plugin — it is the earlier reminder-only adapter and is superseded by this one.
 
 ### Always-active remote instructions
 
@@ -186,7 +187,7 @@ Codex users can still invoke `$engineering-discipline` or `$response-discipline`
 | Codex and Claude Code | New, resumed, cleared, or compacted root session | `SessionStart` | Inject each skill in a separate hook payload. |
 | Codex and Claude Code | Every subagent | `SubagentStart` | Apply the same standards in isolated context. |
 | Codex and Claude Code | Entering or leaving plan mode | `PostToolUse` (`EnterPlanMode`/`ExitPlanMode`) | Inject `planning-discipline` on entry, clear its session marker on exit. |
-| Pi | Every submitted agent prompt | `before_agent_start` | Append all skills plus the planning reminder to the current chained system prompt. |
+| Pi | Every submitted agent prompt | `before_agent_start` | Append the three always-active skills plus the planning reminder to the current chained system prompt. |
 | OpenCode | Every session using global config | `instructions` | Load all version-pinned files into context. |
 
 `PostCompact` is not used for Codex or Claude Code instruction injection. Both hosts provide compact recovery through `SessionStart` with a `compact` source.

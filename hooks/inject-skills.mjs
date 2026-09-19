@@ -195,13 +195,16 @@ const activation = planActivation();
 // (no discipline at all). Compaction and clear drop context, so they refresh.
 const stateRoot = process.env.DISCIPLINE_STATE_DIR || join(tmpdir(), 'discipline-injected');
 
-function markerPath(sessionId, name) {
-  const safe = String(sessionId).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 128);
-  return safe ? join(stateRoot, safe, name) : null;
+function markerPath(sessionId, name, agentId) {
+  const safeSession = String(sessionId).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 128);
+  const safeAgent = String(agentId ?? '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 128);
+  if (!safeSession) return null;
+  const marker = safeAgent ? `${name}-agent-${safeAgent}` : name;
+  return join(stateRoot, safeSession, marker);
 }
 
-function clearMarker(sessionId, name) {
-  const path = markerPath(sessionId, name);
+function clearMarker(sessionId, name, agentId) {
+  const path = markerPath(sessionId, name, agentId);
   if (path === null) return;
   try {
     rmSync(path, { force: true });
@@ -210,8 +213,8 @@ function clearMarker(sessionId, name) {
   }
 }
 
-function markInjected(sessionId, name) {
-  const path = markerPath(sessionId, name);
+function markInjected(sessionId, name, agentId) {
+  const path = markerPath(sessionId, name, agentId);
   if (path === null) return;
   try {
     mkdirSync(dirname(path), { recursive: true });
@@ -222,8 +225,13 @@ function markInjected(sessionId, name) {
 }
 
 if (planningOnly) {
+  const refreshing =
+    event === 'SessionStart' && (payload.source === 'compact' || payload.source === 'clear');
+  if (refreshing) {
+    clearMarker(payload.session_id, 'planning-discipline', payload.agent_id);
+  }
   if (event === 'PostToolUse' && payload.tool_name === 'ExitPlanMode') {
-    clearMarker(payload.session_id, 'planning-discipline');
+    clearMarker(payload.session_id, 'planning-discipline', payload.agent_id);
     process.exit(0);
   }
   if (activation === 'none') process.exit(0);
@@ -236,9 +244,11 @@ if (planningOnly) {
     );
     process.exit(0);
   }
-  const refreshing =
-    event === 'SessionStart' && (payload.source === 'compact' || payload.source === 'clear');
-  if (!refreshing && payload.session_id && existsSync(markerPath(payload.session_id, 'planning-discipline'))) {
+  if (
+    !refreshing &&
+    payload.session_id &&
+    existsSync(markerPath(payload.session_id, 'planning-discipline', payload.agent_id))
+  ) {
     process.exit(0);
   }
 }
@@ -261,7 +271,9 @@ if (bodies.length > 0) {
       suppressOutput: true,
     })
   );
-  if (planningOnly) markInjected(payload.session_id, 'planning-discipline');
+  if (planningOnly) {
+    markInjected(payload.session_id, 'planning-discipline', payload.agent_id);
+  }
 }
 
 process.exit(0);

@@ -47,6 +47,7 @@ function runHook({
   toolName,
   source,
   sessionId,
+  agentId,
   stateDir,
   force = false,
 }) {
@@ -80,6 +81,7 @@ function runHook({
       tool_name: toolName,
       source,
       session_id: sessionId,
+      agent_id: agentId,
     }),
     encoding: 'utf8',
   });
@@ -366,6 +368,74 @@ test('ExitPlanMode clears the session marker so re-entry injects again', () => {
     permissionMode: 'plan',
     event: 'UserPromptSubmit',
     sessionId: 'exit-session',
+    stateDir,
+  })).hookSpecificOutput.additionalContext, /PLAN RULES/);
+});
+
+test('plan-mode subagents receive an isolated copy after the parent session', () => {
+  const pluginRoot = temporaryDirectory('planning-subagent-plugin');
+  const userRoot = temporaryDirectory('planning-subagent-user');
+  const stateDir = temporaryDirectory('planning-subagent-state');
+  writeSkill(pluginRoot, 'planning-discipline', 'PLAN RULES');
+
+  const parent = parseOutput(runHook({
+    pluginRoot,
+    userRoot,
+    only: 'planning-discipline',
+    permissionMode: 'plan',
+    event: 'UserPromptSubmit',
+    sessionId: 'shared-session',
+    stateDir,
+  }));
+  assert.match(parent.hookSpecificOutput.additionalContext, /PLAN RULES/);
+
+  const subagent = parseOutput(runHook({
+    pluginRoot,
+    userRoot,
+    only: 'planning-discipline',
+    permissionMode: 'plan',
+    event: 'SubagentStart',
+    sessionId: 'shared-session',
+    agentId: 'subagent-1',
+    stateDir,
+  }));
+  assert.match(subagent.hookSpecificOutput.additionalContext, /PLAN RULES/);
+});
+
+test('non-plan compaction clears stale state before later plan re-entry', () => {
+  const pluginRoot = temporaryDirectory('planning-nonplan-compact-plugin');
+  const userRoot = temporaryDirectory('planning-nonplan-compact-user');
+  const stateDir = temporaryDirectory('planning-nonplan-compact-state');
+  writeSkill(pluginRoot, 'planning-discipline', 'PLAN RULES');
+
+  assert.match(parseOutput(runHook({
+    pluginRoot,
+    userRoot,
+    only: 'planning-discipline',
+    permissionMode: 'plan',
+    event: 'UserPromptSubmit',
+    sessionId: 'compact-session',
+    stateDir,
+  })).hookSpecificOutput.additionalContext, /PLAN RULES/);
+
+  assert.equal(parseOutput(runHook({
+    pluginRoot,
+    userRoot,
+    only: 'planning-discipline',
+    permissionMode: 'default',
+    event: 'SessionStart',
+    source: 'compact',
+    sessionId: 'compact-session',
+    stateDir,
+  })), null);
+
+  assert.match(parseOutput(runHook({
+    pluginRoot,
+    userRoot,
+    only: 'planning-discipline',
+    permissionMode: 'plan',
+    event: 'UserPromptSubmit',
+    sessionId: 'compact-session',
     stateDir,
   })).hookSpecificOutput.additionalContext, /PLAN RULES/);
 });

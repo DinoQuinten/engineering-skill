@@ -5,17 +5,19 @@ description: "Plan-mode discipline for decomposition, bounded alternative analys
 
 # Planning Discipline
 
-Use this skill whenever the host is in plan mode or the user asks for a plan. It complements engineering-discipline; do not repeat or weaken those rules. These instructions apply only while producing or revising a plan. Once the plan is approved and execution begins, follow the normal engineering discipline: this skill never authorizes executing tasks, starting workers, or changing permissions.
+Use this skill whenever the host is in plan mode or the user asks for a plan. It complements engineering-discipline; do not repeat or weaken those rules. The planning behavior is host-neutral: use the read-only investigation and agent capabilities available in the current host without requiring host-specific commands. Host adapters only decide when to load this skill.
+
+These instructions apply only while producing or revising a plan. Once the plan is approved and execution begins, follow the normal engineering discipline: this skill never authorizes executing tasks, starting workers, or changing permissions.
 
 ## Decompose
 
 Start with the goal, success criteria, constraints, and current state. Fan the work into concrete tasks. For every task, state its outcome, dependencies, and acceptance check. Put independent work in parallel branches and dependent work in order. Check that every branch maps back to the goal and that no branch duplicates or conflicts with another.
 
-## Compare
+## Compare approaches (Tree of Thought)
 
 For each decision that changes architecture, compatibility, security, cost, or effort, examine the viable approaches. Compare evidence, tradeoffs, risks, and reversibility, then choose one. Keep exploration bounded; skip alternatives when the constraints leave one viable path.
 
-## Check consistency
+## Check self-consistency
 
 Review the plan twice: confirm that requirements map to tasks, then confirm that the tasks integrate into the stated outcome. Resolve contradictions and label assumptions. Agreement between model responses is not evidence; repository facts, documentation, tests, and measurements are evidence.
 

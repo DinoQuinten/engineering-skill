@@ -1,6 +1,6 @@
 {
   "name": "discipline",
-  "description": "Response and engineering discipline for Claude Code, Codex, Pi, and OpenCode: no filler or hedging, RCA-formatted problem reports, docs-first implementation, root-cause fixes, behavior-level tests, and executed verification.",
+  "description": "Response, engineering, registry, and planning discipline for Claude Code, Codex, Pi, and OpenCode: evidence-first work, root-cause fixes, decomposition, and executed verification.",
   "version": "1.9.0",
   "author": {
     "name": "DinoQuinten",
@@ -11,6 +11,7 @@
     "engineering",
     "code-quality",
     "communication",
-    "rca"
+    "rca",
+    "planning"
   ]
 }
