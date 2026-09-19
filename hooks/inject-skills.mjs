@@ -80,12 +80,16 @@ function stripFrontmatter(body) {
   return match ? body.slice(match[0].length) : body;
 }
 
+let stdin = null;
+
 function readStdin() {
+  if (stdin !== null) return stdin;
   try {
-    return readFileSync(0, 'utf8');
+    stdin = readFileSync(0, 'utf8');
   } catch {
-    return '';
+    stdin = '';
   }
+  return stdin;
 }
 
 function hookEventName() {
@@ -93,6 +97,14 @@ function hookEventName() {
     return JSON.parse(readStdin()).hook_event_name || 'SessionStart';
   } catch {
     return 'SessionStart';
+  }
+}
+
+function inputPayload() {
+  try {
+    return JSON.parse(readStdin());
+  } catch {
+    return {};
   }
 }
 
@@ -135,6 +147,8 @@ function collectSkills() {
 }
 
 const event = hookEventName();
+const payload = inputPayload();
+const only = requestedSkill();
 
 let bodies = [];
 try {
@@ -144,6 +158,11 @@ try {
 }
 
 if (bodies.length > 0) {
+  if (
+    only === 'planning-discipline' &&
+    payload.permission_mode !== 'plan' &&
+    process.env.DISCIPLINE_FORCE_INJECT !== '1'
+  ) process.exit(0);
   // docs-used.md#D3 and #D6 — both hosts accept this additionalContext shape.
   process.stdout.write(
     JSON.stringify({

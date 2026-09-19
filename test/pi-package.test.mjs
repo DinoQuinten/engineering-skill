@@ -100,3 +100,10 @@ test('extension initialization reports an unreadable required skill clearly', as
     rmSync(missingRoot, { recursive: true, force: true });
   }
 });
+
+test('Pi exposes the plan-only body for an official planner bridge', async () => {
+  const extension = await loadExtension();
+  const context = extension.getPlanningDisciplineInstructions();
+  assert.match(context, /^# Planning Discipline$/m);
+  assert.doesNotMatch(context, /^name: planning-discipline$/m);
+});

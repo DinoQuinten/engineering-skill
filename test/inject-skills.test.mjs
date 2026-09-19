@@ -43,6 +43,7 @@ function runHook({
   claudeConfigDirectory,
   only,
   event = 'SessionStart',
+  permissionMode,
   force = false,
 }) {
   const args = [hookPath];
@@ -67,7 +68,7 @@ function runHook({
   return spawnSync(process.execPath, args, {
     cwd: repositoryRoot,
     env,
-    input: JSON.stringify({ hook_event_name: event }),
+    input: JSON.stringify({ hook_event_name: event, permission_mode: permissionMode }),
     encoding: 'utf8',
   });
 }
@@ -199,6 +200,29 @@ test('unknown skills and missing skill directories produce no output', () => {
     only: 'not-a-skill',
   })), null);
   assert.equal(parseOutput(runHook({ pluginRoot: missingRoot, userRoot })), null);
+});
+
+test('planning-discipline injects only when the host reports plan mode', () => {
+  const pluginRoot = temporaryDirectory('planning-mode-plugin');
+  const userRoot = temporaryDirectory('planning-mode-user');
+  writeSkill(pluginRoot, 'planning-discipline', 'PLAN RULES');
+
+  assert.equal(parseOutput(runHook({
+    pluginRoot,
+    userRoot,
+    only: 'planning-discipline',
+    permissionMode: 'default',
+  })), null);
+
+  const output = parseOutput(runHook({
+    pluginRoot,
+    userRoot,
+    only: 'planning-discipline',
+    permissionMode: 'plan',
+    event: 'UserPromptSubmit',
+  }));
+  assert.equal(output.hookSpecificOutput.hookEventName, 'UserPromptSubmit');
+  assert.match(output.hookSpecificOutput.additionalContext, /PLAN RULES/);
 });
 
 /**

@@ -41,6 +41,16 @@ function readRequiredSkills(skillsRoot) {
 }
 
 /**
+ * Reads the plan-only body for the official Pi planner's live enabled branch.
+ *
+ * @see docs-used.md#D12+�u���T Pi has no universal cross-extension plan-state API.
+ */
+export function getPlanningDisciplineInstructions({ skillsRoot = defaultSkillsRoot } = {}) {
+  const path = join(skillsRoot, 'planning-discipline', 'SKILL.md');
+  return stripFrontmatter(readFileSync(path, 'utf8'));
+}
+
+/**
  * Builds the native Pi extension registration function.
  *
  * @see docs-used.md#D7 — Pi package resource paths are relative to the package root.

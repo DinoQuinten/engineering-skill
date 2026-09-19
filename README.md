@@ -218,6 +218,14 @@ npm run sync:check  # exits 1 if a personal copy has drifted from the repo
 5. Add its version-pinned URL or absolute path to OpenCode's global `instructions`.
 6. Add behavior tests before changing an injector.
 
+## Plan-mode skill
+
+Codex and Claude Code inject `planning-discipline` only when hook input reports `permission_mode: "plan"`. The skill requires decomposition, bounded alternative analysis, self-consistency, and read-only ReAct investigation. Debate remains off until the user explicitly opts in.
+
+Pi packages the skill for discovery. The official Pi plan-mode extension can import `getPlanningDisciplineInstructions` from `extensions/always-active.js` inside its live `before_agent_start` plan branch. This package does not replace Pi's planner or its tool restrictions.
+
+OpenCode v2 users can add `extensions/opencode-planning.js` to the plugin list. It appends the skill only when the active agent is `plan`. OpenCode classic users should invoke the skill explicitly because its system transform hook does not expose agent identity.
+
 ## Test
 
 Run all deterministic suites:

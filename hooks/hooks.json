@@ -17,6 +17,11 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/inject-skills.mjs\" --only task-registry",
             "statusMessage": "Loading task-registry..."
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/inject-skills.mjs\" --only planning-discipline",
+            "statusMessage": "Loading planning-discipline when in plan mode..."
           }
         ]
       }
@@ -38,6 +43,22 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/inject-skills.mjs\" --only task-registry",
             "statusMessage": "Loading task-registry for subagent..."
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/inject-skills.mjs\" --only planning-discipline",
+            "statusMessage": "Loading planning-discipline for plan-mode subagent..."
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/inject-skills.mjs\" --only planning-discipline",
+            "statusMessage": "Loading planning-discipline when in plan mode..."
           }
         ]
       }
