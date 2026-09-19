@@ -23,6 +23,10 @@ Review the plan twice: confirm that requirements map to tasks, then confirm that
 
 When information is missing, state the question, choose a targeted read-only action, inspect its result, and use that result to choose the next action. This applies to web, API, database, and file investigation. Separate verified findings from assumptions and unresolved questions. Do not mutate state while planning.
 
+## Engineer the fix, never patch
+
+Never plan a patch or a symptom fix. Every task must remove the root cause; if the cause is unknown, the first task is to find it. A workaround, retry, or special case that hides the symptom is not a plan item unless the plan states why the cause cannot be removed and what makes the workaround acceptable. This makes engineering-discipline's root-cause rule a gate on every plan.
+
 ## Optional debate
 
 Debate is off by default because it consumes extra tokens. Ask the user once per planning task whether they want it, and keep that choice for revisions of the same plan. With explicit approval, two agents independently take positions, critique one another once, and return a short synthesis with the selected approach and rationale. Claims require evidence or an assumption label. If agents are unavailable, report that and continue with the consistency check. Never start debate from a hook without user approval.
