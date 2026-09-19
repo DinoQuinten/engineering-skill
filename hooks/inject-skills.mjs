@@ -6,11 +6,12 @@
  * communication/engineering standards that must apply to every response, so
  * their full text is pushed into context instead of relying on invocation.
  *
- * Registered on SessionStart and SubagentStart. SessionStart's matcher includes
- * `compact`, which is what re-injects after a compaction drops the context —
- * PostCompact cannot do this, as it rejects `additionalContext` in its output
- * schema. SubagentStart covers spawned agents, which do not inherit the main
- * session's injected context.
+ * Registered on SessionStart, SubagentStart, UserPromptSubmit, and
+ * PostToolUse (EnterPlanMode|ExitPlanMode). SessionStart has no matcher, so it
+ * fires for every source including `compact`, which is what re-injects after a
+ * compaction drops the context — PostCompact cannot do this, as it rejects
+ * `additionalContext` in its output schema. SubagentStart covers spawned
+ * agents, which do not inherit the main session's injected context.
  *
  * ONE SKILL PER INVOCATION. `--only <name>` emits just that skill, and hooks.json
  * registers one command per skill. Concatenating them into a single block was
@@ -40,9 +41,9 @@
  * broken plugin checkout never breaks session startup.
  */
 
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
-import { homedir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 const PREAMBLE =
@@ -51,6 +52,17 @@ const PREAMBLE =
   'response and every task. Do not invoke them again - their full content is ' +
   'already here. They override default response and engineering ' +
   'behavior; explicit user instructions still win.\n';
+
+// docs-used.md#D13 — Codex and Claude Code report `permission_mode` as
+// "default" | "acceptEdits" | "plan" | "dontAsk" | "bypassPermissions". When a
+// host omits it (older builds, wrappers, unknown integrations) the full
+// plan-only skill cannot be confirmed, so this compact discovery hint ships
+// instead of silently skipping planning discipline.
+const PLANNING_REMINDER =
+  'PLANNING-DISCIPLINE REMINDER\n' +
+  'This host did not report plan mode. If you are planning or the user asks ' +
+  'for a plan, load the planning-discipline skill and follow it before writing ' +
+  'the plan.\n';
 
 // docs-used.md#D2 — Codex sets PLUGIN_ROOT and also exposes CLAUDE_PLUGIN_ROOT as a compatibility
 // alias. Prefer the native variable so it also identifies the active host.
@@ -125,14 +137,15 @@ function requestedSkill() {
   return i !== -1 ? process.argv[i + 1] : null;
 }
 
-function collectSkills() {
+function collectSkills({ includePlanning }) {
   const skillsDir = join(pluginRoot, 'skills');
   const only = requestedSkill();
-  const names = readdirSync(skillsDir, { withFileTypes: true })
+  // Set-dedupe the names so a repeated directory entry can never emit a body twice.
+  const names = [...new Set(readdirSync(skillsDir, { withFileTypes: true })
     .filter((e) => e.isDirectory())
     .map((e) => e.name)
     .filter((name) => only === null || name === only)
-    .sort();
+    .filter((name) => name !== 'planning-discipline' || includePlanning))].sort();
 
   const bodies = [];
   for (const name of names) {
@@ -149,20 +162,95 @@ function collectSkills() {
 const event = hookEventName();
 const payload = inputPayload();
 const only = requestedSkill();
+const planningOnly = only === 'planning-discipline';
+const force = process.env.DISCIPLINE_FORCE_INJECT === '1';
+
+/**
+ * Activation for the plan-only skill, measured against real host input fields.
+ *
+ * - full: plan mode is confirmed (`permission_mode: "plan"`) or a tool
+ *   transition into plan mode just succeeded.
+ * - reminder: the host did not report plan mode at all, so discovery cannot be
+ *   trusted and a compact hint is emitted instead.
+ * - none: the host explicitly reported a non-plan mode, or plan mode just ended.
+ *
+ * @see docs-used.md#D13 — host lifecycle fields and matcher support.
+ */
+function planActivation() {
+  if (force) return 'full';
+  if (event === 'PostToolUse' && payload.tool_name === 'ExitPlanMode') return 'none';
+  if (event === 'PostToolUse' && payload.tool_name === 'EnterPlanMode') return 'full';
+  const mode = payload.permission_mode;
+  if (mode === 'plan') return 'full';
+  if (mode === undefined || mode === null || mode === '') return 'reminder';
+  return 'none';
+}
+
+const activation = planActivation();
+
+// Per-session dedup. Hooks run as separate processes and cannot read the
+// accumulated context, so the only way to avoid re-injecting the same full
+// skill on every prompt is a marker keyed by host session id. Absent a session
+// id the guard is skipped, which fails open (a duplicate) rather than closed
+// (no discipline at all). Compaction and clear drop context, so they refresh.
+const stateRoot = process.env.DISCIPLINE_STATE_DIR || join(tmpdir(), 'discipline-injected');
+
+function markerPath(sessionId, name) {
+  const safe = String(sessionId).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 128);
+  return safe ? join(stateRoot, safe, name) : null;
+}
+
+function clearMarker(sessionId, name) {
+  const path = markerPath(sessionId, name);
+  if (path === null) return;
+  try {
+    rmSync(path, { force: true });
+  } catch {
+    // Best effort: a stale marker at worst suppresses one re-injection.
+  }
+}
+
+function markInjected(sessionId, name) {
+  const path = markerPath(sessionId, name);
+  if (path === null) return;
+  try {
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, '1', 'utf8');
+  } catch {
+    // Best effort: a failed write only risks a duplicate block next event.
+  }
+}
+
+if (planningOnly) {
+  if (event === 'PostToolUse' && payload.tool_name === 'ExitPlanMode') {
+    clearMarker(payload.session_id, 'planning-discipline');
+    process.exit(0);
+  }
+  if (activation === 'none') process.exit(0);
+  if (activation === 'reminder') {
+    process.stdout.write(
+      JSON.stringify({
+        hookSpecificOutput: { hookEventName: event, additionalContext: PLANNING_REMINDER },
+        suppressOutput: true,
+      })
+    );
+    process.exit(0);
+  }
+  const refreshing =
+    event === 'SessionStart' && (payload.source === 'compact' || payload.source === 'clear');
+  if (!refreshing && payload.session_id && existsSync(markerPath(payload.session_id, 'planning-discipline'))) {
+    process.exit(0);
+  }
+}
 
 let bodies = [];
 try {
-  bodies = collectSkills();
+  bodies = collectSkills({ includePlanning: activation === 'full' });
 } catch {
   // skills/ missing or unreadable — emit nothing rather than failing the session.
 }
 
 if (bodies.length > 0) {
-  if (
-    only === 'planning-discipline' &&
-    payload.permission_mode !== 'plan' &&
-    process.env.DISCIPLINE_FORCE_INJECT !== '1'
-  ) process.exit(0);
   // docs-used.md#D3 and #D6 — both hosts accept this additionalContext shape.
   process.stdout.write(
     JSON.stringify({
@@ -173,6 +261,7 @@ if (bodies.length > 0) {
       suppressOutput: true,
     })
   );
+  if (planningOnly) markInjected(payload.session_id, 'planning-discipline');
 }
 
 process.exit(0);

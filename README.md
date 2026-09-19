@@ -70,7 +70,7 @@ The `.claude-plugin/` files are intentional compatibility metadata, not leftover
 Install the GitHub package at the release tag:
 
 ```text
-pi install git:github.com/DinoQuinten/engineering-skill@v1.7.0
+pi install git:github.com/DinoQuinten/engineering-skill@v1.8.0
 ```
 
 For a local checkout:
@@ -97,14 +97,14 @@ Merge the `instructions` entries below into the existing `~/.config/opencode/ope
 ```json
 {
   "instructions": [
-    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.7.0/skills/response-discipline/SKILL.md",
-    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.7.0/skills/engineering-discipline/SKILL.md",
-    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.7.0/skills/task-registry/SKILL.md"
+    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.8.0/skills/response-discipline/SKILL.md",
+    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.8.0/skills/engineering-discipline/SKILL.md",
+    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.8.0/skills/task-registry/SKILL.md"
   ]
 }
 ```
 
-The `v1.7.0` tag pins instruction behavior. Upgrade all three URLs together when adopting a later release.
+The `v1.8.0` tag pins instruction behavior. Upgrade all three URLs together when adopting a later release.
 
 ### Local or offline instructions
 
@@ -166,7 +166,8 @@ Codex users can still invoke `$engineering-discipline` or `$response-discipline`
 |---|---|---|---|
 | Codex and Claude Code | New, resumed, cleared, or compacted root session | `SessionStart` | Inject each skill in a separate hook payload. |
 | Codex and Claude Code | Every subagent | `SubagentStart` | Apply the same standards in isolated context. |
-| Pi | Every submitted agent prompt | `before_agent_start` | Append all skills to the current chained system prompt. |
+| Codex and Claude Code | Entering or leaving plan mode | `PostToolUse` (`EnterPlanMode`/`ExitPlanMode`) | Inject `planning-discipline` on entry, clear its session marker on exit. |
+| Pi | Every submitted agent prompt | `before_agent_start` | Append all skills plus the planning reminder to the current chained system prompt. |
 | OpenCode | Every session using global config | `instructions` | Load all version-pinned files into context. |
 
 `PostCompact` is not used for Codex or Claude Code instruction injection. Both hosts provide compact recovery through `SessionStart` with a `compact` source.
@@ -179,6 +180,9 @@ Codex users can still invoke `$engineering-discipline` or `$response-discipline`
 ├── .claude-plugin/                        # Claude Code manifest and marketplace
 ├── .codex-plugin/plugin.json              # Codex manifest
 ├── extensions/always-active.js            # Native Pi before_agent_start extension
+├── extensions/opencode-planning.js        # OpenCode v2 Plan-agent context hook
+├── extensions/opencode-planning-classic.js # OpenCode classic reminder transform
+├── extensions/skill-body.js               # Shared skill-body reader for adapters
 ├── hooks/                                 # Shared Codex and Claude Code hooks
 ├── package.json                           # Native Pi package manifest
 ├── skills/                                # Shared source-of-truth skill bodies
@@ -220,18 +224,48 @@ npm run sync:check  # exits 1 if a personal copy has drifted from the repo
 
 ## Plan-mode skill
 
-Codex and Claude Code inject `planning-discipline` only when hook input reports `permission_mode: "plan"`. The skill requires decomposition, bounded alternative analysis, self-consistency, and read-only ReAct investigation. Debate remains off until the user explicitly opts in.
+`planning-discipline` covers decomposition, bounded alternative analysis, self-consistency, and read-only ReAct investigation. It applies only while a plan is being produced; it never authorizes execution, workers, or permission changes. Debate stays off until the user opts in once per planning task.
 
-Pi packages the skill for discovery. The official Pi plan-mode extension can import `getPlanningDisciplineInstructions` from `extensions/always-active.js` inside its live `before_agent_start` plan branch. This package does not replace Pi's planner or its tool restrictions.
+### Activation per host
 
-OpenCode v2 users can add `extensions/opencode-planning.js` to the plugin list. It appends the skill only when the active agent is `plan`. OpenCode classic users should invoke the skill explicitly because its system transform hook does not expose agent identity.
+| Host | Full skill | When detection is unavailable |
+|---|---|---|
+| Codex | `SessionStart` / `UserPromptSubmit` / `PostToolUse` when `permission_mode: "plan"` | Compact reminder (host omitted `permission_mode`); nothing for an explicit non-plan mode |
+| Claude Code | Same, plus `PostToolUse` on a successful `EnterPlanMode` | Compact reminder on absent mode |
+| OpenCode v2 | `context` hook when `event.agent === "plan"` (`extensions/opencode-planning.js`) | Not needed; agent identity is available |
+| OpenCode classic | Not detectable — the system transform has no agent identity | Compact reminder plus skill path (`extensions/opencode-planning-classic.js`) |
+| Pi | Official planner calls the bridge inside its own active plan branch | Compact reminder in the always-active preamble |
+
+The injector records a per-session marker so the full skill is not re-injected on every prompt. `SessionStart` with a `compact` or `clear` source refreshes it; `ExitPlanMode` clears it. With no `session_id` the guard is skipped (fails open to a duplicate rather than dropping discipline).
+
+### Pi bridge
+
+Pi has no universal cross-extension plan-state API, so the official plan-mode extension calls the bridge from inside the branch where it already knows plan mode is active:
+
+```js
+import { getPlanningDisciplineInstructions } from 'discipline/extensions/always-active.js';
+
+// Inside the planner's before_agent_start handler, plan branch already chosen:
+const planBody = getPlanningDisciplineInstructions();
+return { systemPrompt: event.systemPrompt + '\n\n' + planBody };
+```
+
+The helper returns an empty string when the skill is absent, so the bridge cannot break the planner. Other Pi planners keep explicit skill invocation. This package does not replace Pi's planner or its tool restrictions.
+
+### OpenCode
+
+v2: add `extensions/opencode-planning.js` to the plugin list; it appends the full skill for the `plan` agent and skips duplicates already in the outgoing context.
+
+Classic (verified against OpenCode 1.18.31): copy `extensions/opencode-planning-classic.js` and `extensions/skill-body.js` into `<config>/opencode/plugin/`. Any `.js`/`.ts` file in that directory is auto-loaded — no `plugins` array entry is needed — and a `default` or named export that is `async () => hooks` is accepted. The adapter registers `experimental.chat.system.transform` and can only add the discovery reminder, because that hook carries no agent identity. The reminder names the resolved skill path only when that path exists, so a relocated adapter degrades to the pathless reminder rather than pointing at a missing file. OpenCode discovers skills from `<config>/opencode/skill/<name>/SKILL.md` and `<config>/opencode/skills/<name>/SKILL.md`; `opencode debug skill` lists them.
+
+Each skill stays under the measured 10,000-character `additionalContext` cap; `test/inject-skills.test.mjs` enforces it.
 
 ## Test
 
 Run all deterministic suites:
 
 ```text
-node --test test/inject-skills.test.mjs test/pi-package.test.mjs
+node --test test/inject-skills.test.mjs test/pi-package.test.mjs test/opencode-planning.test.mjs
 ```
 
 PowerShell smoke test for Codex:
@@ -261,6 +295,10 @@ The hook emits one JSON object whose `hookSpecificOutput.additionalContext` cont
 - Host-specific metadata has no effect in other hosts.
 - A personal skill with the same name suppresses Codex or Claude Code plugin injection only for its matching host.
 - Generated `.skill` archives are ignored snapshots. `skills/` is the source of truth.
+- Plan-mode activation depends on host-reported fields verified against the docs in `docs-used.md#D13`, not on live host runs: Codex and Claude Code `permission_mode`, Claude `EnterPlanMode`, OpenCode v2 `event.agent`. Codex `permission_mode` may be absent in older builds or wrappers; those hosts fall back to the compact reminder.
+- The per-session dedup marker lives under the OS temp directory (`DISCIPLINE_STATE_DIR` overrides it). Hosts that omit `session_id` get no dedup.
+- OpenCode classic cannot detect the active agent, so it only adds the reminder — it does not guarantee full activation. Verified on OpenCode 1.18.31: the plugin loads and `experimental.chat.system.transform` fires with `output.system` as a string array; the transform fires once per system-prompt build, and the adapter's `includes()` guard prevents a duplicate within one build.
+- The classic adapter computes the skill path relative to its own file, so install it beside `skill-body.js` with the repo's `skills/` sibling, or the reminder drops the path (by design).
 
 ## Requirements
 

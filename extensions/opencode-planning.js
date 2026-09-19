@@ -1,34 +1,30 @@
-import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const pluginRoot = dirname(dirname(fileURLToPath(import.meta.url)));
-
-function stripFrontmatter(body) {
-  const match = /^---\r?\n[\s\S]*?\r?\n---\r?\n+/.exec(body);
-  return match ? body.slice(match[0].length) : body;
-}
-
-/**
- * @see docs-used.md#D12+�u���T OpenCode v2 context hooks expose the active agent.
- */
-export function buildPlanningContext(skillsRoot = join(pluginRoot, 'skills')) {
-  return stripFrontmatter(
-    readFileSync(join(skillsRoot, 'planning-discipline', 'SKILL.md'), 'utf8'),
-  );
-}
+import { defaultSkillsRoot, readSkillBodyOrEmpty } from './skill-body.js';
 
 /**
  * OpenCode v2 plugin. Add this file to the OpenCode plugin list.
- * The context hook runs for the agent loop and continuations.
+ *
+ * The `context` hook runs for the agent loop and its tool-driven
+ * continuations, and exposes the active agent, so the full skill is appended
+ * only for the Plan agent. An empty body (missing skill) makes the plugin a
+ * no-op rather than a load failure.
+ *
+ * @see docs-used.md#D13 — OpenCode v2 context hooks expose the active agent.
  */
+export function buildPlanningContext(skillsRoot = defaultSkillsRoot) {
+  return readSkillBodyOrEmpty(skillsRoot, 'planning-discipline');
+}
+
 export default {
   id: 'discipline-planning',
   async setup(ctx) {
     const instructions = buildPlanningContext();
+    if (!instructions) return;
     await ctx.session.hook('context', (event) => {
       if (event.agent !== 'plan') return;
-      event.system.push({ type: 'text', text: instructions });
+      const alreadyPresent = event.system.some(
+        (part) => part && part.type === 'text' && part.text === instructions,
+      );
+      if (!alreadyPresent) event.system.push({ type: 'text', text: instructions });
     });
   },
 };

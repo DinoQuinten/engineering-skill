@@ -5,7 +5,7 @@ description: "Plan-mode discipline for decomposition, bounded alternative analys
 
 # Planning Discipline
 
-Use this skill whenever the host is in plan mode or the user asks for a plan. It complements engineering-discipline; do not repeat or weaken those rules.
+Use this skill whenever the host is in plan mode or the user asks for a plan. It complements engineering-discipline; do not repeat or weaken those rules. These instructions apply only while producing or revising a plan. Once the plan is approved and execution begins, follow the normal engineering discipline: this skill never authorizes executing tasks, starting workers, or changing permissions.
 
 ## Decompose
 
@@ -25,7 +25,7 @@ When information is missing, state the question, choose a targeted read-only act
 
 ## Optional debate
 
-Debate is off by default because it consumes extra tokens. Before starting it, ask the user whether they want it for the specific decision. With explicit approval, two agents independently take positions, critique one another once, and return a short synthesis with the selected approach and rationale. Claims require evidence or an assumption label. If agents are unavailable, report that and continue with the consistency check. Never start debate from a hook without user approval.
+Debate is off by default because it consumes extra tokens. Ask the user once per planning task whether they want it, and keep that choice for revisions of the same plan. With explicit approval, two agents independently take positions, critique one another once, and return a short synthesis with the selected approach and rationale. Claims require evidence or an assumption label. If agents are unavailable, report that and continue with the consistency check. Never start debate from a hook without user approval.
 
 ## Plan output
 
