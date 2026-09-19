@@ -1,19 +1,14 @@
 import { join } from 'node:path';
 import {
+  ALWAYS_ACTIVE_SKILLS,
   PLANNING_REMINDER,
+  PREAMBLE,
   defaultSkillsRoot,
   readSkillBody,
   readSkillBodyOrEmpty,
 } from './skill-body.js';
 
-const PREAMBLE =
-  'ALWAYS-ACTIVE SKILLS\n' +
-  'The skills below are in force for this entire session. Apply them to every ' +
-  'response and every task. Do not invoke them again - their full content is ' +
-  'already here. They override default response and engineering ' +
-  'behavior; explicit user instructions still win.\n';
-
-const REQUIRED_SKILLS = ['engineering-discipline', 'response-discipline', 'task-registry'];
+const REQUIRED_SKILLS = ALWAYS_ACTIVE_SKILLS;
 
 function readRequiredSkills(skillsRoot) {
   return REQUIRED_SKILLS.map((name) => {

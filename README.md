@@ -85,10 +85,29 @@ On every `before_agent_start`, the extension appends the always-active preamble 
 
 ## Install in OpenCode
 
-OpenCode needs two complementary configurations:
+OpenCode has two ways to auto-inject the skills: a self-contained plugin (recommended) or global `instructions`.
 
-- Global `instructions` keep all complete skill bodies active in every session.
-- `~/.agents/skills` keeps the skills advertised for explicit, on-demand loading through the skill tool.
+### Self-injecting plugin (recommended)
+
+`extensions/opencode-discipline.js` is one classic OpenCode plugin that loads every skill itself:
+
+- `response-discipline`, `engineering-discipline`, and `task-registry` are appended to every system prompt.
+- `planning-discipline` is appended only while the Plan agent is active.
+
+Reference it from the `plugin` array by absolute path — no copying, so the skill path always resolves to this checkout:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": ["/absolute/path/to/engineering-skill/extensions/opencode-discipline.js"]
+}
+```
+
+Or copy `extensions/opencode-discipline.js` and `extensions/skill-body.js` into `~/.config/opencode/plugin/` and copy `skills/` into `~/.config/opencode/skills/`; the plugin resolves skill files relative to its own directory.
+
+The plugin uses `chat.message` to learn the active agent, because the classic `experimental.chat.system.transform` hook carries no agent identity. Verified on OpenCode 1.18.31: the build agent gets the always-active block only, the Plan agent gets the always-active block plus `planning-discipline`, and neither block is duplicated within one system build.
+
+Known overhead: OpenCode rebuilds the system prompt for auxiliary calls (session title, compaction) and the classic transform cannot tell them apart, so the always-active block is also added there. Use the `instructions` route below if that cost matters. Do not load `opencode-planning-classic.js` alongside this plugin — it is the earlier reminder-only adapter and is superseded by this one.
 
 ### Always-active remote instructions
 
@@ -180,8 +199,9 @@ Codex users can still invoke `$engineering-discipline` or `$response-discipline`
 ├── .claude-plugin/                        # Claude Code manifest and marketplace
 ├── .codex-plugin/plugin.json              # Codex manifest
 ├── extensions/always-active.js            # Native Pi before_agent_start extension
+├── extensions/opencode-discipline.js      # OpenCode classic all-in-one self-injecting plugin
 ├── extensions/opencode-planning.js        # OpenCode v2 Plan-agent context hook
-├── extensions/opencode-planning-classic.js # OpenCode classic reminder transform
+├── extensions/opencode-planning-classic.js # OpenCode classic reminder transform (superseded)
 ├── extensions/skill-body.js               # Shared skill-body reader for adapters
 ├── hooks/                                 # Shared Codex and Claude Code hooks
 ├── package.json                           # Native Pi package manifest
@@ -233,7 +253,7 @@ npm run sync:check  # exits 1 if a personal copy has drifted from the repo
 | Codex | `SessionStart` / `UserPromptSubmit` / `PostToolUse` when `permission_mode: "plan"` | Compact reminder (host omitted `permission_mode`); nothing for an explicit non-plan mode |
 | Claude Code | Same, plus `PostToolUse` on a successful `EnterPlanMode` | Compact reminder on absent mode |
 | OpenCode v2 | `context` hook when `event.agent === "plan"` (`extensions/opencode-planning.js`) | Not needed; agent identity is available |
-| OpenCode classic | Not detectable — the system transform has no agent identity | Compact reminder plus skill path (`extensions/opencode-planning-classic.js`) |
+| OpenCode classic | `extensions/opencode-discipline.js` tracks the agent from `chat.message`, then appends the skill on `experimental.chat.system.transform` | Compact reminder plus skill path (`extensions/opencode-planning-classic.js`) |
 | Pi | Official planner calls the bridge inside its own active plan branch | Compact reminder in the always-active preamble |
 
 The injector records a per-session marker so the full skill is not re-injected on every prompt. `SessionStart` with a `compact` or `clear` source refreshes it; `ExitPlanMode` clears it. With no `session_id` the guard is skipped (fails open to a duplicate rather than dropping discipline).
