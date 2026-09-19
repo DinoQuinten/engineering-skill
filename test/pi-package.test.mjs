@@ -100,3 +100,33 @@ test('extension initialization reports an unreadable required skill clearly', as
     rmSync(missingRoot, { recursive: true, force: true });
   }
 });
+
+test('Pi exposes the plan-only body for an official planner bridge', async () => {
+  const extension = await loadExtension();
+  const context = extension.getPlanningDisciplineInstructions();
+  assert.match(context, /^# Planning Discipline$/m);
+  assert.doesNotMatch(context, /^name: planning-discipline$/m);
+});
+
+test('Pi planner bridge degrades to empty when the skill is absent', async () => {
+  const extension = await loadExtension();
+  const missingRoot = mkdtempSync(join(tmpdir(), 'discipline-pi-plan-missing-'));
+
+  try {
+    assert.equal(extension.getPlanningDisciplineInstructions({ skillsRoot: missingRoot }), '');
+  } finally {
+    rmSync(missingRoot, { recursive: true, force: true });
+  }
+});
+
+test('Pi always-active prompt carries the planning reminder once', async () => {
+  const { PLANNING_REMINDER } = await import(
+    `${pathToFileURL(join(repositoryRoot, 'extensions', 'skill-body.js')).href}?test=${Date.now()}`
+  );
+  const registered = new Map();
+  const extension = await loadExtension();
+  extension.default({ on: (eventName, handler) => registered.set(eventName, handler) });
+
+  const result = await registered.get('before_agent_start')({ systemPrompt: 'BASE' }, {});
+  assert.equal(occurrences(result.systemPrompt, PLANNING_REMINDER), 1);
+});

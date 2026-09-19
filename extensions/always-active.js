@@ -1,6 +1,10 @@
-import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import {
+  PLANNING_REMINDER,
+  defaultSkillsRoot,
+  readSkillBody,
+  readSkillBodyOrEmpty,
+} from './skill-body.js';
 
 const PREAMBLE =
   'ALWAYS-ACTIVE SKILLS\n' +
@@ -10,27 +14,12 @@ const PREAMBLE =
   'behavior; explicit user instructions still win.\n';
 
 const REQUIRED_SKILLS = ['engineering-discipline', 'response-discipline', 'task-registry'];
-const defaultSkillsRoot = fileURLToPath(new URL('../skills', import.meta.url));
-
-/**
- * Drops the leading YAML frontmatter block from a skill body.
- *
- * `name` and `description` are how Pi discovers and advertises the skill from
- * `pi.skills` in package.json, so they stay in the file. The injected copy needs
- * neither: the preamble already states these skills are in force and must not be
- * invoked. Only a block starting on line 1 is removed, leaving any `---` rule
- * inside the body alone.
- */
-function stripFrontmatter(body) {
-  const match = /^---\r?\n[\s\S]*?\r?\n---\r?\n+/.exec(body);
-  return match ? body.slice(match[0].length) : body;
-}
 
 function readRequiredSkills(skillsRoot) {
   return REQUIRED_SKILLS.map((name) => {
     const path = join(skillsRoot, name, 'SKILL.md');
     try {
-      return stripFrontmatter(readFileSync(path, 'utf8'));
+      return readSkillBody(skillsRoot, name);
     } catch (cause) {
       throw new Error(
         `Failed to initialize discipline Pi extension: required skill ${path} is missing or unreadable`,
@@ -38,6 +27,17 @@ function readRequiredSkills(skillsRoot) {
       );
     }
   });
+}
+
+/**
+ * Reads the plan-only body for the official Pi planner's live enabled branch.
+ * Returns an empty string when the skill is absent so a planner bridge cannot
+ * break the host.
+ *
+ * @see docs-used.md#D13 — Pi has no universal cross-extension plan-state API.
+ */
+export function getPlanningDisciplineInstructions({ skillsRoot = defaultSkillsRoot } = {}) {
+  return readSkillBodyOrEmpty(skillsRoot, 'planning-discipline');
 }
 
 /**
@@ -49,7 +49,8 @@ function readRequiredSkills(skillsRoot) {
 export function createAlwaysActiveExtension({ skillsRoot = defaultSkillsRoot } = {}) {
   return function registerAlwaysActiveSkills(pi) {
     const bodies = readRequiredSkills(skillsRoot);
-    const instructions = PREAMBLE + '\n\n' + bodies.join('\n\n---\n\n');
+    const instructions =
+      PREAMBLE + '\n\n' + bodies.join('\n\n---\n\n') + '\n\n' + PLANNING_REMINDER;
 
     // docs-used.md#D8 — returning only systemPrompt avoids a persistent conversation message.
     pi.on('before_agent_start', async (event) => ({

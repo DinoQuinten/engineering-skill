@@ -1,0 +1,3 @@
+display_name: Planning Discipline
+short_description: Evidence-driven, decomposed plans with optional debate
+default_prompt: Use planning-discipline for this plan.

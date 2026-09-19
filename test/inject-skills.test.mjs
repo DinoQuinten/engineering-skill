@@ -43,6 +43,11 @@ function runHook({
   claudeConfigDirectory,
   only,
   event = 'SessionStart',
+  permissionMode,
+  toolName,
+  source,
+  sessionId,
+  stateDir,
   force = false,
 }) {
   const args = [hookPath];
@@ -53,12 +58,14 @@ function runHook({
   delete env.CLAUDE_PLUGIN_ROOT;
   delete env.CLAUDE_CONFIG_DIR;
   delete env.DISCIPLINE_FORCE_INJECT;
+  delete env.DISCIPLINE_STATE_DIR;
 
   if (host === 'codex') env.PLUGIN_ROOT = pluginRoot;
   if (claudePluginRoot !== undefined) env.CLAUDE_PLUGIN_ROOT = claudePluginRoot;
   if (host === 'claude') env.CLAUDE_PLUGIN_ROOT = claudePluginRoot ?? pluginRoot;
   if (claudeConfigDirectory !== undefined) env.CLAUDE_CONFIG_DIR = claudeConfigDirectory;
   if (force) env.DISCIPLINE_FORCE_INJECT = '1';
+  if (stateDir !== undefined) env.DISCIPLINE_STATE_DIR = stateDir;
   if (userRoot !== undefined) {
     env.HOME = userRoot;
     env.USERPROFILE = userRoot;
@@ -67,7 +74,13 @@ function runHook({
   return spawnSync(process.execPath, args, {
     cwd: repositoryRoot,
     env,
-    input: JSON.stringify({ hook_event_name: event }),
+    input: JSON.stringify({
+      hook_event_name: event,
+      permission_mode: permissionMode,
+      tool_name: toolName,
+      source,
+      session_id: sessionId,
+    }),
     encoding: 'utf8',
   });
 }
@@ -199,6 +212,162 @@ test('unknown skills and missing skill directories produce no output', () => {
     only: 'not-a-skill',
   })), null);
   assert.equal(parseOutput(runHook({ pluginRoot: missingRoot, userRoot })), null);
+});
+
+test('planning-discipline injects only when the host reports plan mode', () => {
+  const pluginRoot = temporaryDirectory('planning-mode-plugin');
+  const userRoot = temporaryDirectory('planning-mode-user');
+  writeSkill(pluginRoot, 'planning-discipline', 'PLAN RULES');
+
+  assert.equal(parseOutput(runHook({
+    pluginRoot,
+    userRoot,
+    only: 'planning-discipline',
+    permissionMode: 'default',
+  })), null);
+
+  const output = parseOutput(runHook({
+    pluginRoot,
+    userRoot,
+    only: 'planning-discipline',
+    permissionMode: 'plan',
+    event: 'UserPromptSubmit',
+  }));
+  assert.equal(output.hookSpecificOutput.hookEventName, 'UserPromptSubmit');
+  assert.match(output.hookSpecificOutput.additionalContext, /PLAN RULES/);
+});
+
+test('planning-discipline emits a compact reminder when the host omits plan mode', () => {
+  const pluginRoot = temporaryDirectory('planning-reminder-plugin');
+  const userRoot = temporaryDirectory('planning-reminder-user');
+  writeSkill(pluginRoot, 'planning-discipline', 'PLAN RULES');
+
+  const output = parseOutput(runHook({
+    pluginRoot,
+    userRoot,
+    only: 'planning-discipline',
+    sessionId: 'reminder-session',
+    stateDir: temporaryDirectory('planning-reminder-state'),
+  }));
+
+  const context = output.hookSpecificOutput.additionalContext;
+  assert.match(context, /planning-discipline/i);
+  assert.match(context, /load|invoke/i);
+  assert.doesNotMatch(context, /PLAN RULES/);
+});
+
+test('planning-discipline stays silent for an explicit non-plan mode', () => {
+  const pluginRoot = temporaryDirectory('planning-silent-plugin');
+  const userRoot = temporaryDirectory('planning-silent-user');
+  writeSkill(pluginRoot, 'planning-discipline', 'PLAN RULES');
+
+  for (const permissionMode of ['default', 'acceptEdits', 'bypassPermissions', 'dontAsk']) {
+    assert.equal(parseOutput(runHook({
+      pluginRoot,
+      userRoot,
+      only: 'planning-discipline',
+      permissionMode,
+      sessionId: `silent-${permissionMode}`,
+      stateDir: temporaryDirectory('planning-silent-state'),
+    })), null, `${permissionMode} should not inject the plan skill`);
+  }
+});
+
+test('an EnterPlanMode transition injects the full plan skill without a mode field', () => {
+  const pluginRoot = temporaryDirectory('planning-enter-plugin');
+  const userRoot = temporaryDirectory('planning-enter-user');
+  writeSkill(pluginRoot, 'planning-discipline', 'PLAN RULES');
+
+  const output = parseOutput(runHook({
+    pluginRoot,
+    userRoot,
+    only: 'planning-discipline',
+    event: 'PostToolUse',
+    toolName: 'EnterPlanMode',
+    sessionId: 'enter-session',
+    stateDir: temporaryDirectory('planning-enter-state'),
+  }));
+
+  assert.match(output.hookSpecificOutput.additionalContext, /PLAN RULES/);
+});
+
+test('planning-discipline is injected once per session and re-injected after compaction', () => {
+  const pluginRoot = temporaryDirectory('planning-dedup-plugin');
+  const userRoot = temporaryDirectory('planning-dedup-user');
+  const stateDir = temporaryDirectory('planning-dedup-state');
+  writeSkill(pluginRoot, 'planning-discipline', 'PLAN RULES');
+
+  const first = parseOutput(runHook({
+    pluginRoot,
+    userRoot,
+    only: 'planning-discipline',
+    permissionMode: 'plan',
+    event: 'SessionStart',
+    source: 'startup',
+    sessionId: 'dedup-session',
+    stateDir,
+  }));
+  assert.match(first.hookSpecificOutput.additionalContext, /PLAN RULES/);
+
+  assert.equal(parseOutput(runHook({
+    pluginRoot,
+    userRoot,
+    only: 'planning-discipline',
+    permissionMode: 'plan',
+    event: 'UserPromptSubmit',
+    sessionId: 'dedup-session',
+    stateDir,
+  })), null, 'a second event in the same session must not repeat the full skill');
+
+  const afterCompact = parseOutput(runHook({
+    pluginRoot,
+    userRoot,
+    only: 'planning-discipline',
+    permissionMode: 'plan',
+    event: 'SessionStart',
+    source: 'compact',
+    sessionId: 'dedup-session',
+    stateDir,
+  }));
+  assert.match(afterCompact.hookSpecificOutput.additionalContext, /PLAN RULES/);
+});
+
+test('ExitPlanMode clears the session marker so re-entry injects again', () => {
+  const pluginRoot = temporaryDirectory('planning-exit-plugin');
+  const userRoot = temporaryDirectory('planning-exit-user');
+  const stateDir = temporaryDirectory('planning-exit-state');
+  writeSkill(pluginRoot, 'planning-discipline', 'PLAN RULES');
+
+  assert.match(parseOutput(runHook({
+    pluginRoot,
+    userRoot,
+    only: 'planning-discipline',
+    event: 'PostToolUse',
+    toolName: 'EnterPlanMode',
+    sessionId: 'exit-session',
+    stateDir,
+  })).hookSpecificOutput.additionalContext, /PLAN RULES/);
+
+  assert.equal(parseOutput(runHook({
+    pluginRoot,
+    userRoot,
+    only: 'planning-discipline',
+    event: 'PostToolUse',
+    toolName: 'ExitPlanMode',
+    permissionMode: 'plan',
+    sessionId: 'exit-session',
+    stateDir,
+  })), null, 'ExitPlanMode must not inject');
+
+  assert.match(parseOutput(runHook({
+    pluginRoot,
+    userRoot,
+    only: 'planning-discipline',
+    permissionMode: 'plan',
+    event: 'UserPromptSubmit',
+    sessionId: 'exit-session',
+    stateDir,
+  })).hookSpecificOutput.additionalContext, /PLAN RULES/);
 });
 
 /**

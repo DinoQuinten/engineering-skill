@@ -1,9 +1,9 @@
 {
   "name": "discipline",
-  "version": "1.7.0",
-  "description": "Always-active response and engineering discipline for Codex, Claude Code, Pi, and OpenCode.",
+  "version": "1.8.0",
+  "description": "Response, engineering, registry, and plan-mode discipline for Codex, Claude Code, Pi, and OpenCode.",
   "scripts": {
-    "test": "node --test test/",
+    "test": "node --test",
     "sync": "node scripts/sync-user-skills.mjs",
     "sync:check": "node scripts/sync-user-skills.mjs --check"
   },
