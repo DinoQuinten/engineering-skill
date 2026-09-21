@@ -1,3 +1,7 @@
-display_name: Planning Discipline
-short_description: Evidence-driven, decomposed plans with optional debate
-default_prompt: Use planning-discipline for this plan.
+interface:
+  display_name: "Planning Discipline"
+  short_description: "Evidence-driven implementation planning"
+  default_prompt: "Use $planning-discipline to create or review an implementation plan."
+
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Task Registry"
+  short_description: "Append-only task history and outcomes"
+  default_prompt: "Use $task-registry to record this task and its outcome."
+
+policy:
+  allow_implicit_invocation: true

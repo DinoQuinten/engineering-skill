@@ -8,6 +8,8 @@ import test from 'node:test';
 const repositoryRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const packagePath = join(repositoryRoot, 'package.json');
 const extensionPath = join(repositoryRoot, 'extensions', 'always-active.js');
+const canonicalDescription =
+  'Always-active response, engineering, planning, and task-tracking standards for Codex, Claude Code, Pi, and OpenCode.';
 const preamble =
   'ALWAYS-ACTIVE SKILLS\n' +
   'The skills below are in force for this entire session. Apply them to every ' +
@@ -33,9 +35,12 @@ async function loadExtension() {
 test('package manifest exposes the shared skills and native Pi extension', () => {
   const manifest = JSON.parse(readFileSync(packagePath, 'utf8'));
 
+  assert.equal(manifest.description, canonicalDescription);
+
   for (const directory of ['.codex-plugin', '.claude-plugin']) {
     const plugin = JSON.parse(readFileSync(join(repositoryRoot, directory, 'plugin.json'), 'utf8'));
     assert.equal(manifest.version, plugin.version, `${directory} version must match package.json`);
+    assert.equal(plugin.description, canonicalDescription, `${directory} description must match`);
   }
   assert.equal(manifest.type, 'module');
   assert.equal(manifest.private, true);
@@ -45,6 +50,44 @@ test('package manifest exposes the shared skills and native Pi extension', () =>
     extensions: ['./extensions/always-active.js'],
   });
   assert.equal(manifest.dependencies, undefined);
+});
+
+test('plugin discovery metadata uses the Discipline product name and canonical description', () => {
+  const codex = JSON.parse(
+    readFileSync(join(repositoryRoot, '.codex-plugin', 'plugin.json'), 'utf8'),
+  );
+  const claudeMarketplace = JSON.parse(
+    readFileSync(join(repositoryRoot, '.claude-plugin', 'marketplace.json'), 'utf8'),
+  );
+
+  assert.equal(codex.interface.displayName, 'Discipline');
+  assert.equal(codex.interface.shortDescription, 'Always-active engineering standards');
+  assert.equal(
+    codex.interface.longDescription,
+    'Keep response, engineering, and task-tracking rules active in every session, and apply planning discipline while plans are created or reviewed.',
+  );
+  assert.equal(claudeMarketplace.description, canonicalDescription);
+  assert.equal(claudeMarketplace.plugins[0].description, canonicalDescription);
+});
+
+test('every shared skill has valid Codex discovery metadata', () => {
+  for (const skill of [
+    'response-discipline',
+    'engineering-discipline',
+    'task-registry',
+    'planning-discipline',
+  ]) {
+    const metadata = readFileSync(
+      join(repositoryRoot, 'skills', skill, 'agents', 'openai.yaml'),
+      'utf8',
+    );
+    assert.match(metadata, /^interface:\r?$/m, `${skill} needs an interface object`);
+    assert.match(metadata, /^  display_name: /m, `${skill} needs a display name`);
+    assert.match(metadata, /^  short_description: /m, `${skill} needs a short description`);
+    assert.match(metadata, /^  default_prompt: /m, `${skill} needs a default prompt`);
+    assert.match(metadata, /^policy:\r?$/m, `${skill} needs invocation policy`);
+    assert.match(metadata, /^  allow_implicit_invocation: true$/m);
+  }
 });
 
 test('public Pi extension preserves the base prompt and injects each required body once', async () => {
