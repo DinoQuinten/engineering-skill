@@ -27,3 +27,4 @@
 {"id":"T-20260921-0040-publish-about-install","ts":"2026-09-21T00:40:00Z","agent":"main","task":"commit and push the About and installation fixes","status":"active"}
 {"id":"T-20260921-0040-publish-about-install","ts":"2026-09-21T00:50:00Z","status":"done","commits":["b90b04c"],"outcome":"Committed and pushed the About and installation fixes to origin/main as b90b04c."}
 {"id":"T-20260921-0050-readme-naming","ts":"2026-09-21T00:50:00Z","agent":"main","task":"correct README naming hierarchy and rewrite stale or awkward copy before republishing","status":"active"}
+{"id":"T-20260921-0050-readme-naming","ts":"2026-09-21T01:10:00Z","status":"done","commits":["1bd6b85"],"outcome":"Renamed the README presentation to Discipline, added a separate multi-host tagline, standardized installation headings, tightened stale and awkward copy, and passed all 41 tests."}
