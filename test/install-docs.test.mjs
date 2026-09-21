@@ -8,7 +8,11 @@ const repositoryRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const readme = readFileSync(join(repositoryRoot, 'README.md'), 'utf8');
 
 test('GitHub-facing copy describes a multi-host agentic plugin', () => {
-  assert.match(readme, /^# Agentic discipline for Codex, Claude Code, Pi, and OpenCode$/m);
+  assert.match(readme, /^# Discipline$/m);
+  assert.match(
+    readme,
+    /^> Always-active engineering standards for Codex, Claude Code, Pi, and OpenCode\.$/m,
+  );
   assert.doesNotMatch(readme, /Claude Code plugin: always-active response and engineering discipline skills/);
 });
 

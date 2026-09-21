@@ -1,8 +1,10 @@
-# Agentic discipline for Codex, Claude Code, Pi, and OpenCode
+# Discipline
 
-`discipline` supplies four shared skills for evidence-first communication, engineered software work, agent task tracking, and plan-mode reasoning. Codex, Claude Code, Pi, and OpenCode all use the unchanged `skills/` files as their source of truth.
+> Always-active engineering standards for Codex, Claude Code, Pi, and OpenCode.
 
-Codex and Claude Code use lifecycle hooks. Pi uses a native package extension. OpenCode supports a native plugin or global `instructions`. Response, engineering, and task-registry discipline stay active; planning-discipline loads only while planning or as an explicit skill.
+Discipline is an agentic plugin with four shared skills: clear technical communication, implementation planning, engineered software work, and task tracking. Every supported host reads the same files under `skills/`.
+
+Codex and Claude Code use lifecycle hooks. Pi uses a native package extension. OpenCode supports a native plugin or global `instructions`. Response, engineering, and task-registry rules stay active throughout the session. Planning rules apply while a plan is being created or reviewed.
 
 ## Capabilities
 
@@ -22,7 +24,7 @@ Codex and Claude Code use lifecycle hooks. Pi uses a native package extension. O
 
 The package and extension shapes follow [docs-used.md D7 and D8](docs-used.md). OpenCode instruction and skill behavior follows [docs-used.md D9 and D10](docs-used.md).
 
-## Install in Codex
+## Install on Codex
 
 ### From GitHub
 
@@ -44,7 +46,7 @@ Codex manages installed copies under `~/.codex/plugins/cache/dinoquinten/discipl
 
 Codex also discovers standalone personal skills under `~/.agents/skills/<skill-name>/SKILL.md`. Standalone installation does not include the always-active hooks.
 
-## Install in Claude Code
+## Install on Claude Code
 
 ### From GitHub
 
@@ -53,7 +55,7 @@ Codex also discovers standalone personal skills under `~/.agents/skills/<skill-n
 /plugin install discipline@dinoquinten
 ```
 
-Restart the session. Use `/context` to confirm that both skills appear in `SessionStart` hook context.
+Restart the session. Use `/context` to confirm that the four skills appear in the `SessionStart` hook context.
 
 ### From a local checkout
 
@@ -66,7 +68,7 @@ Claude Code manages installed copies under `~/.claude/plugins/cache/dinoquinten/
 
 The `.claude-plugin/` files are intentional compatibility metadata, not leftovers.
 
-## Install in Pi
+## Install on Pi
 
 Install the GitHub package at the release tag:
 
@@ -80,22 +82,22 @@ From the cloned repository root:
 pi install .
 ```
 
-Pi reads `package.json`, discovers all four shared skills, and loads `extensions/always-active.js`. The extension requires the three always-active skills, adds a compact planning reminder, and exposes the full planning body through the planner bridge.
+Pi reads `package.json`, discovers all four skills, and loads `extensions/always-active.js`. The extension requires the three always-active skills, adds a compact planning reminder, and exposes the full planning body through the planner bridge.
 
-On every `before_agent_start`, the extension appends the always-active preamble and all complete skill bodies to the current chained system prompt. It preserves the existing prompt and returns no persistent conversation message.
+On every `before_agent_start`, the extension appends the preamble and three always-active skill bodies to the current system prompt. It preserves the existing prompt and returns no persistent conversation message.
 
-## Install in OpenCode
+## Install on OpenCode
 
 OpenCode has two ways to auto-inject the skills: global `instructions` (simplest) or a self-contained plugin for conditional Plan-agent loading.
 
 ### Self-injecting plugin (advanced)
 
-`extensions/opencode-discipline.js` is one classic OpenCode plugin that loads every skill itself:
+`extensions/opencode-discipline.js` loads the skills through one classic OpenCode plugin:
 
 - `response-discipline`, `engineering-discipline`, and `task-registry` are appended to every system prompt.
 - `planning-discipline` is appended only while the Plan agent is active.
 
-Reference it from the `plugin` array by absolute path — no copying, so the skill path always resolves to this checkout:
+Reference it from the `plugin` array by absolute path. This keeps the skill source in the checkout and avoids copied files:
 
 ```json
 {
@@ -223,7 +225,7 @@ If a matching personal skill exists, the plugin skips its copy. The personal cop
 
 Each skill is registered as its own hook command so every payload stays inline instead of spilling to a file-backed preview.
 
-**The cap is 10,000 characters of `additionalContext`**, measured by bisection against live sessions: 10,000 characters arrived inline, 10,081 was replaced by a ~1.7 KB preview with the remainder silently unavailable. Injectors strip the YAML frontmatter before emitting — it is disk-only metadata for host discovery, worth ~1.7 KB across the three skills — and `test/inject-skills.test.mjs` enforces the budget against the real `skills/` directory, so the limit is a test rather than a comment.
+The `additionalContext` cap is 10,000 characters. Live-session tests delivered 10,000 characters inline; at 10,081 characters, the host substituted a roughly 1.7 KB preview and silently omitted the rest. Injectors strip YAML frontmatter before emitting because it is discovery metadata, not runtime instruction text. `test/inject-skills.test.mjs` enforces the cap against the real skill files.
 
 ### Keeping personal copies in sync
 
