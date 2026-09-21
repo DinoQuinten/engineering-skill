@@ -1,4 +1,4 @@
-# discipline for Codex, Claude Code, Pi, and OpenCode
+# Agentic discipline for Codex, Claude Code, Pi, and OpenCode
 
 `discipline` supplies four shared skills for evidence-first communication, engineered software work, agent task tracking, and plan-mode reasoning. Codex, Claude Code, Pi, and OpenCode all use the unchanged `skills/` files as their source of truth.
 
@@ -18,7 +18,7 @@ Codex and Claude Code use lifecycle hooks. Pi uses a native package extension. O
 | Codex | `SessionStart` and `SubagentStart` hooks | `agents/openai.yaml` and `~/.agents/skills` |
 | Claude Code | `SessionStart` and `SubagentStart` hooks | Claude skill discovery |
 | Pi | Native `before_agent_start` extension | Package `skills` resources |
-| OpenCode | Global `opencode.json` `instructions` | `~/.agents/skills` compatibility source |
+| OpenCode | Native plugin or global `instructions` | Skills CLI installation for all four skills |
 
 The package and extension shapes follow [docs-used.md D7 and D8](docs-used.md). OpenCode instruction and skill behavior follows [docs-used.md D9 and D10](docs-used.md).
 
@@ -74,10 +74,10 @@ Install the GitHub package at the release tag:
 pi install git:github.com/DinoQuinten/engineering-skill@v1.9.0
 ```
 
-For a local checkout:
+From the cloned repository root:
 
 ```text
-pi install /absolute/path/to/engineering-skill
+pi install .
 ```
 
 Pi reads `package.json`, discovers all four shared skills, and loads `extensions/always-active.js`. The extension requires the three always-active skills, adds a compact planning reminder, and exposes the full planning body through the planner bridge.
@@ -86,9 +86,9 @@ On every `before_agent_start`, the extension appends the always-active preamble 
 
 ## Install in OpenCode
 
-OpenCode has two ways to auto-inject the skills: a self-contained plugin (recommended) or global `instructions`.
+OpenCode has two ways to auto-inject the skills: global `instructions` (simplest) or a self-contained plugin for conditional Plan-agent loading.
 
-### Self-injecting plugin (recommended)
+### Self-injecting plugin (advanced)
 
 `extensions/opencode-discipline.js` is one classic OpenCode plugin that loads every skill itself:
 
@@ -110,7 +110,7 @@ The plugin uses `chat.message` to learn the active agent, because the classic `e
 
 Known overhead: OpenCode rebuilds the system prompt for auxiliary calls (session title, compaction), and the classic transform cannot distinguish them. The always-active block is therefore added to those calls; while the tracked agent is Plan, `planning-discipline` can be added too. Use the `instructions` route below if that cost matters. Do not load `opencode-planning-classic.js` alongside this plugin — it is the earlier reminder-only adapter and is superseded by this one.
 
-### Always-active remote instructions
+### Always-active remote instructions (recommended)
 
 Merge the `instructions` entries below into the existing `~/.config/opencode/opencode.json`. Preserve every existing key and every existing instruction entry; do not replace the file.
 
@@ -119,12 +119,13 @@ Merge the `instructions` entries below into the existing `~/.config/opencode/ope
   "instructions": [
     "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.9.0/skills/response-discipline/SKILL.md",
     "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.9.0/skills/engineering-discipline/SKILL.md",
-    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.9.0/skills/task-registry/SKILL.md"
+    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.9.0/skills/task-registry/SKILL.md",
+    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.9.0/skills/planning-discipline/SKILL.md"
   ]
 }
 ```
 
-The `v1.9.0` tag pins instruction behavior. Upgrade all three URLs together when adopting a later release.
+The `v1.9.0` tag pins instruction behavior. Upgrade all four URLs together when adopting a later release. With this route, all four bodies are present automatically in every session; `planning-discipline` limits its workflow to planning tasks through its own instructions, so no explicit skill invocation is required.
 
 ### Local or offline instructions
 
@@ -135,7 +136,8 @@ Clone or download the repository, then use absolute local paths instead of the r
   "instructions": [
     "/absolute/path/to/engineering-skill/skills/response-discipline/SKILL.md",
     "/absolute/path/to/engineering-skill/skills/engineering-discipline/SKILL.md",
-    "/absolute/path/to/engineering-skill/skills/task-registry/SKILL.md"
+    "/absolute/path/to/engineering-skill/skills/task-registry/SKILL.md",
+    "/absolute/path/to/engineering-skill/skills/planning-discipline/SKILL.md"
   ]
 }
 ```
@@ -144,12 +146,10 @@ On Windows, use JSON paths such as `C:/absolute/path/to/engineering-skill/skills
 
 ### On-demand skill discovery
 
-Place or link both skill directories at these compatibility paths:
+Install all four skills globally for OpenCode with one command:
 
 ```text
-~/.agents/skills/response-discipline/SKILL.md
-~/.agents/skills/engineering-discipline/SKILL.md
-~/.agents/skills/task-registry/SKILL.md
+npx skills add DinoQuinten/engineering-skill -g -a opencode -y
 ```
 
 Verify the merged global configuration and discovered skills:
@@ -159,7 +159,7 @@ opencode debug config
 opencode debug skill
 ```
 
-OpenCode always includes configured `instructions`. Discovered skills work differently: OpenCode advertises their names and descriptions, then adds a body only when the model or user invokes the skill tool. Keep the global instruction entries when always-active enforcement is required.
+OpenCode always includes configured `instructions`. Discovered skills work differently: OpenCode advertises their names and descriptions, then adds a body only when the model or user invokes the skill tool. Use both steps: `instructions` provide automatic behavior, while the Skills CLI command makes `response-discipline`, `engineering-discipline`, `task-registry`, and `planning-discipline` explicitly invokable.
 
 ## Use
 
@@ -286,7 +286,7 @@ Each skill stays under the measured 10,000-character `additionalContext` cap; `t
 Run all deterministic suites:
 
 ```text
-node --test test/inject-skills.test.mjs test/pi-package.test.mjs test/opencode-planning.test.mjs
+node --test
 ```
 
 PowerShell smoke test for Codex:
