@@ -6,6 +6,7 @@ import test from 'node:test';
 
 const repositoryRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const readme = readFileSync(join(repositoryRoot, 'README.md'), 'utf8');
+const releaseTag = `v${JSON.parse(readFileSync(join(repositoryRoot, 'package.json'), 'utf8')).version}`;
 
 test('GitHub-facing copy describes a multi-host agentic plugin', () => {
   assert.match(readme, /^# Discipline$/m);
@@ -27,9 +28,15 @@ test('OpenCode instructions automatically load all four skills', () => {
     'task-registry',
     'planning-discipline',
   ]) {
-    assert.match(readme, new RegExp(`v1\\.9\\.0/skills/${skill}/SKILL\\.md`));
+    const url = `${releaseTag}/skills/${skill}/SKILL.md`;
+    assert.ok(readme.includes(url), `README must pin ${url}`);
   }
   assert.match(readme, /Upgrade all four URLs together/);
+});
+
+test('Pi install command pins the package release tag', () => {
+  const command = `pi install git:github.com/DinoQuinten/engineering-skill@${releaseTag}`;
+  assert.ok(readme.includes(command), `README must pin ${command}`);
 });
 
 test('OpenCode discovery uses one global Skills CLI command', () => {

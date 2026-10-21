@@ -10,7 +10,7 @@ Codex and Claude Code use lifecycle hooks. Pi uses a native package extension. O
 
 | Skill | Enforced workflow |
 |---|---|
-| `response-discipline` | Direct answers, no filler or unsupported agreement, evidence before conclusions, concise structure, and RCA-formatted failure reports. |
+| `response-discipline` | ASD-STE100 writing, direct answers, Yes/No fixability reports, evidence before conclusions, concise structure, RCA-formatted failure reports, and minimal targeted changes. |
 | `engineering-discipline` | Official-docs-first implementation, a `docs-used.md` ledger, the YAGNI ladder, root-cause fixes, behavior-level tests, blast-radius checks, and executed verification. |
 | `task-registry` | Append-only `registry.jsonl` recording every task any agent, sub-agent, or worker job performs — including no-diff work like audits, RCA, and decisions. |
 | `planning-discipline` | Host-neutral decomposition, alternative analysis, self-consistency, ReAct investigation, root-cause planning, and optional user-approved debate. |
@@ -73,7 +73,7 @@ The `.claude-plugin/` files are intentional compatibility metadata, not leftover
 Install the GitHub package at the release tag:
 
 ```text
-pi install git:github.com/DinoQuinten/engineering-skill@v1.9.0
+pi install git:github.com/DinoQuinten/engineering-skill@v1.10.0
 ```
 
 From the cloned repository root:
@@ -119,15 +119,15 @@ Merge the `instructions` entries below into the existing `~/.config/opencode/ope
 ```json
 {
   "instructions": [
-    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.9.0/skills/response-discipline/SKILL.md",
-    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.9.0/skills/engineering-discipline/SKILL.md",
-    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.9.0/skills/task-registry/SKILL.md",
-    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.9.0/skills/planning-discipline/SKILL.md"
+    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.10.0/skills/response-discipline/SKILL.md",
+    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.10.0/skills/engineering-discipline/SKILL.md",
+    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.10.0/skills/task-registry/SKILL.md",
+    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.10.0/skills/planning-discipline/SKILL.md"
   ]
 }
 ```
 
-The `v1.9.0` tag pins instruction behavior. Upgrade all four URLs together when adopting a later release. With this route, all four bodies are present automatically in every session; `planning-discipline` limits its workflow to planning tasks through its own instructions, so no explicit skill invocation is required.
+The `v1.10.0` tag pins instruction behavior. Upgrade all four URLs together when adopting a later release. With this route, all four bodies are present automatically in every session; `planning-discipline` limits its workflow to planning tasks through its own instructions, so no explicit skill invocation is required.
 
 ### Local or offline instructions
 
