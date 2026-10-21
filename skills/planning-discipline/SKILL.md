@@ -15,7 +15,7 @@ Start with the goal, success criteria, constraints, and current state. Fan the w
 
 ## Compare approaches (Tree of Thought)
 
-For each decision that changes architecture, compatibility, security, cost, or effort, examine the viable approaches. Compare evidence, tradeoffs, risks, and reversibility, then choose one. Keep exploration bounded; skip alternatives when the constraints leave one viable path.
+For each decision that changes architecture, compatibility, security, cost, or effort, examine the viable approaches. Compare evidence, tradeoffs, risks, and reversibility, then choose one. Keep exploration bounded; skip alternatives when the constraints leave one viable path. Mark an approach with no test result as "untested" (unexplored), not as rejected. Reject an approach only on evidence that it fails or violates a constraint. Test each untested approach that could change the choice. Choose the best-engineered approach with future scope in mind, never the cheapest.
 
 ## Check self-consistency
 

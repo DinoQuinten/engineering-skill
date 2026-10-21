@@ -73,7 +73,7 @@ The `.claude-plugin/` files are intentional compatibility metadata, not leftover
 Install the GitHub package at the release tag:
 
 ```text
-pi install git:github.com/DinoQuinten/engineering-skill@v1.10.0
+pi install git:github.com/DinoQuinten/engineering-skill@v1.11.0
 ```
 
 From the cloned repository root:
@@ -119,15 +119,15 @@ Merge the `instructions` entries below into the existing `~/.config/opencode/ope
 ```json
 {
   "instructions": [
-    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.10.0/skills/response-discipline/SKILL.md",
-    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.10.0/skills/engineering-discipline/SKILL.md",
-    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.10.0/skills/task-registry/SKILL.md",
-    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.10.0/skills/planning-discipline/SKILL.md"
+    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.11.0/skills/response-discipline/SKILL.md",
+    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.11.0/skills/engineering-discipline/SKILL.md",
+    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.11.0/skills/task-registry/SKILL.md",
+    "https://raw.githubusercontent.com/DinoQuinten/engineering-skill/v1.11.0/skills/planning-discipline/SKILL.md"
   ]
 }
 ```
 
-The `v1.10.0` tag pins instruction behavior. Upgrade all four URLs together when adopting a later release. With this route, all four bodies are present automatically in every session; `planning-discipline` limits its workflow to planning tasks through its own instructions, so no explicit skill invocation is required.
+The `v1.11.0` tag pins instruction behavior. Upgrade all four URLs together when adopting a later release. With this route, all four bodies are present automatically in every session; `planning-discipline` limits its workflow to planning tasks through its own instructions, so no explicit skill invocation is required.
 
 ### Local or offline instructions
 

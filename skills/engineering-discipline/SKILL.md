@@ -75,6 +75,7 @@ Sorting example: ordering and mutation requirements → existing sort support �
 
 - Never state "passes / works / fixed" without having run the command in this session. Paste the actual output line as evidence.
 - End every RCA/fix with what remains unverified and the single cheapest check that would settle it. Omit if nothing is unverified.
+- **Untested means unexplored, not rejected.** An idea, option, or hypothesis with no test result stays open. Label it "untested", name the check that would settle it, and do not dismiss it or present it as disproved. Reject an idea only when a check shows it fails.
 - Before editing a shared function, type, or constant: grep all consumers first; state how many were checked.
 - Risky changes (migrations, DELETE/UPDATE over ranges, auth/token flows, anything production-touching): never merge or run without tests passing; state rollback path before executing. Destructive operations get a dry-run or row-count check first.
 - Before shipping any change that can reach a destructive operation (DELETE/UPDATE/overwrite): trace every path from the new input/value to that operation — CLI flags, config, adapters — not just direct callers of the function edited.
