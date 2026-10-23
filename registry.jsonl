@@ -40,3 +40,4 @@
 {"ts":"2026-10-23T05:36:12.2106068Z","status":"done","commits":[],"id":"T-20261023-0535-implementation-updates","outcome":"Added two-to-three-line what/how/who/why implementation updates, removed conflicting reporting wording, and restored explicit untested-means-unexplored wording; both skills validate and all 44 tests pass."}
 {"ts":"2026-10-23T06:41:00.3103689Z","id":"T-20261023-0641-publish-skill-updates","task":"Commit and push planning and response skill updates","status":"active","agent":"main"}
 {"id":"T-20261023-0641-publish-skill-updates","ts":"2026-10-23T06:41:14.1850013Z","status":"done","outcome":"Committed and pushed planning and response skill updates to origin/main as dd46f0a; both skills validate and all 44 tests pass.","commits":["dd46f0a"]}
+{"task":"Update plugin and package release versions to 1.12.0 and publish matching tags","ts":"2026-10-23T06:42:08.3160641Z","agent":"main","id":"T-20261023-0642-release-1-12-0","status":"active"}
