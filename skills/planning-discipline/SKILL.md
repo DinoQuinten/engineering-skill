@@ -1,38 +1,53 @@
 ---
 name: planning-discipline
-description: "Plan-mode discipline for decomposition, bounded alternative analysis, self-consistency checks, evidence-driven ReAct investigation, and optional user-approved debate. Use when creating or reviewing an implementation plan."
+description: "Create or review implementation plans with task decomposition, evidence-based choices, consistency checks, and optional user-approved debate."
 ---
 
 # Planning Discipline
 
-Use this skill whenever the host is in plan mode or the user asks for a plan. It complements engineering-discipline; do not repeat or weaken those rules. The planning behavior is host-neutral: use the read-only investigation and agent capabilities available in the current host without requiring host-specific commands. Host adapters only decide when to load this skill.
-
-These instructions apply only while producing or revising a plan. Once the plan is approved and execution begins, follow the normal engineering discipline: this skill never authorizes executing tasks, starting workers, or changing permissions.
+- Apply in plan mode or when the user requests a plan, across all hosts.
+- Follow engineering-discipline. Use available read-only tools; do not mutate state while planning.
+- This skill does not authorize execution, workers, or permission changes. Its scope ends when execution begins.
 
 ## Decompose
 
-Start with the goal, success criteria, constraints, and current state. Fan the work into concrete tasks. For every task, state its outcome, dependencies, and acceptance check. Put independent work in parallel branches and dependent work in order. Check that every branch maps back to the goal and that no branch duplicates or conflicts with another.
+- Define the goal, success criteria, constraints, and current state.
+- Give each task an outcome, dependencies, and an acceptance check.
+- Order dependencies; identify independent tasks for parallel work. Remove duplicate, conflicting, or unrelated tasks.
 
-## Compare approaches (Tree of Thought)
+## Compare approaches
 
-For each decision that changes architecture, compatibility, security, cost, or effort, examine the viable approaches. Compare evidence, tradeoffs, risks, and reversibility, then choose one. Keep exploration bounded; skip alternatives when the constraints leave one viable path. Mark an approach with no test result as "untested" (unexplored), not as rejected. Reject an approach only on evidence that it fails or violates a constraint. Test each untested approach that could change the choice. Choose the best-engineered approach with future scope in mind, never the cheapest.
+- Compare viable options for decisions affecting architecture, compatibility, security, cost, or effort.
+- Use evidence, tradeoffs, risks, and reversibility. Bound exploration; skip comparison when only one option meets the constraints.
+- Untested means unexplored. Keep untested options open; reject them only when evidence shows failure or a constraint violation.
+- Test untested options that could change the choice, using read-only checks while planning.
+- Choose the best-engineered option for current requirements and known future needs; cost alone must not decide.
 
-## Check self-consistency
+## Check consistency
 
-Review the plan twice: confirm that requirements map to tasks, then confirm that the tasks integrate into the stated outcome. Resolve contradictions and label assumptions. Agreement between model responses is not evidence; repository facts, documentation, tests, and measurements are evidence.
+- Review both directions: requirements map to tasks; combined tasks deliver the goal.
+- Resolve contradictions and label assumptions.
+- Use repository facts, documentation, tests, and measurements as evidence. Agreement between models proves nothing.
 
-## Investigate with ReAct
+## Investigate
 
-When information is missing, state the question, choose a targeted read-only action, inspect its result, and use that result to choose the next action. This applies to web, API, database, and file investigation. Separate verified findings from assumptions and unresolved questions. Do not mutate state while planning.
+- For each unknown, state the question, run a targeted read-only check, and inspect the result before choosing the next check.
+- Separate verified findings, assumptions, and unresolved questions.
 
-## Engineer the fix, never patch
+## Fix the cause
 
-Never plan a patch or a symptom fix. Every task must remove the root cause; if the cause is unknown, the first task is to find it. A workaround, retry, or special case that hides the symptom is not a plan item unless the plan states why the cause cannot be removed and what makes the workaround acceptable. This makes engineering-discipline's root-cause rule a gate on every plan.
+- For a defect, plan to remove its root cause. If unknown, investigate the cause first.
+- Include a workaround only when the plan explains why the cause cannot be removed and why the workaround is acceptable.
 
 ## Optional debate
 
-Debate is off by default because it consumes extra tokens. Ask the user once per planning task whether they want it, and keep that choice for revisions of the same plan. With explicit approval, two agents independently take positions, critique one another once, and return a short synthesis with the selected approach and rationale. Claims require evidence or an assumption label. If agents are unavailable, report that and continue with the consistency check. Never start debate from a hook without user approval.
+- Debate is off by default. Ask once per planning task and retain the choice through revisions.
+- With explicit approval, use two agents: independent positions, one mutual critique, then a short synthesis of the choice and rationale.
+- Require evidence or assumption labels. If agents are unavailable, report this and use the consistency check.
+- Hooks must never start debate without user approval.
 
 ## Plan output
 
-End with a decision-complete plan: selected approach, ordered tasks, interfaces or files that change, edge cases, tests and acceptance criteria, rollout or compatibility constraints, and explicit defaults. Do not include private reasoning transcripts. State what remains unverified and the cheapest check that would settle it.
+- State the chosen approach, ordered tasks, affected files or interfaces, edge cases, tests, acceptance criteria, rollout constraints, compatibility, and defaults.
+- Include unresolved checks with the smallest sufficient verification step. Defer checks requiring changes until authorized execution.
+- Omit private reasoning transcripts.
